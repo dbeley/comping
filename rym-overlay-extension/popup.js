@@ -1,0 +1,137 @@
+const api = window.__RYM_EXT__ || {};
+const SOURCES = api.SOURCES || {};
+const TARGETS = api.TARGETS || {};
+const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
+let settings = DEFAULT_SETTINGS;
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderAll();
+  document.getElementById("refresh").addEventListener("click", renderAll);
+  document.getElementById("export").addEventListener("click", exportCsv);
+});
+
+async function renderAll() {
+  const status = document.getElementById("status");
+  status.textContent = "Loading…";
+  clearMessage();
+  try {
+    const [loadedSettings, cache] = await Promise.all([
+      browser.runtime.sendMessage({ type: "rym-settings-get" }).catch(() => DEFAULT_SETTINGS),
+      browser.runtime.sendMessage({ type: "rym-cache-request" }).catch(() => null),
+    ]);
+    settings = { ...DEFAULT_SETTINGS, ...loadedSettings };
+    renderStatus(cache);
+    renderToggles();
+  } catch (err) {
+    status.textContent = `Error loading cache: ${err.message || err}`;
+  }
+}
+
+function renderStatus(cache) {
+  const status = document.getElementById("status");
+  if (!cache) {
+    status.textContent = "No cache found yet. Open RYM/Glitchwave pages to sync.";
+    return;
+  }
+  const count = cache.entries?.length || Object.keys(cache.index || {}).length || 0;
+  const lastSync = cache.lastSync ? new Date(cache.lastSync).toLocaleString() : "unknown";
+  const byType = summarize(cache.entries || []);
+  const summary = Object.entries(byType)
+    .map(([type, total]) => `${type}: ${total}`)
+    .join("\n");
+  status.textContent = `Cached items: ${count}${summary ? `\n${summary}` : ""}\nLast sync: ${lastSync}`;
+}
+
+function renderToggles() {
+  const sourceWrap = document.getElementById("sources");
+  const overlayWrap = document.getElementById("overlays");
+  sourceWrap.innerHTML = "";
+  overlayWrap.innerHTML = "";
+
+  Object.values(SOURCES).forEach((src) => {
+    const row = buildToggleRow(
+      src.label,
+      settings.sources?.[src.mediaType] !== false,
+      (checked) => updateSettings({ sources: { [src.mediaType]: checked } })
+    );
+    sourceWrap.appendChild(row);
+  });
+
+  Object.values(TARGETS).forEach((tgt) => {
+    const row = buildToggleRow(
+      tgt.label,
+      settings.overlays?.[tgt.id] !== false,
+      (checked) => updateSettings({ overlays: { [tgt.id]: checked } })
+    );
+    overlayWrap.appendChild(row);
+  });
+}
+
+function buildToggleRow(label, checked, onChange) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "toggle";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = checked;
+  input.addEventListener("change", () => onChange(input.checked));
+  const text = document.createElement("span");
+  text.textContent = label;
+  wrapper.appendChild(input);
+  wrapper.appendChild(text);
+  return wrapper;
+}
+
+async function updateSettings(partial) {
+  clearMessage();
+  try {
+    settings = await browser.runtime.sendMessage({
+      type: "rym-settings-set",
+      settings: partial,
+    });
+    showMessage("Saved preferences");
+  } catch (err) {
+    showMessage(`Unable to save: ${err.message || err}`, true);
+  }
+}
+
+async function exportCsv() {
+  clearMessage();
+  try {
+    const result = await browser.runtime.sendMessage({ type: "rym-cache-export" });
+    if (!result?.csv) {
+      showMessage("Nothing to export yet.");
+      return;
+    }
+    const blob = new Blob([result.csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `rym-cache-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showMessage(`Exported ${result.count || 0} rows.`);
+  } catch (err) {
+    showMessage(`Export failed: ${err.message || err}`, true);
+  }
+}
+
+function summarize(entries) {
+  const summary = {};
+  for (const entry of entries) {
+    const key = entry.mediaType || "unknown";
+    summary[key] = (summary[key] || 0) + 1;
+  }
+  return summary;
+}
+
+function showMessage(text, isError = false) {
+  const node = document.getElementById("message");
+  node.textContent = text;
+  node.style.color = isError ? "#b00020" : "#111";
+}
+
+function clearMessage() {
+  showMessage("");
+}
