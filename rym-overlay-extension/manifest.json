@@ -63,6 +63,18 @@
       ],
       "js": ["shared/normalize.js", "shared/config.js", "content/navidrome-overlay.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://store.steampowered.com/*",
+        "http://store.steampowered.com/*"
+      ],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "content/steam-overlay.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]

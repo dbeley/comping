@@ -55,11 +55,41 @@ function renderToggles() {
     sourceWrap.appendChild(row);
   });
 
-  Object.values(TARGETS).forEach((tgt) => {
-    const row = buildToggleRow(tgt.label, settings.overlays?.[tgt.id] !== false, (checked) =>
-      updateSettings({ overlays: { [tgt.id]: checked } })
-    );
-    overlayWrap.appendChild(row);
+  // Group overlays by media type
+  const targetsByType = Object.values(TARGETS).reduce((acc, tgt) => {
+    const type = tgt.mediaType || "other";
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(tgt);
+    return acc;
+  }, {});
+
+  const typeLabels = {
+    music: "Music streaming",
+    game: "Video games",
+    film: "Movies",
+    other: "Other"
+  };
+
+  Object.entries(targetsByType).forEach(([type, targets]) => {
+    if (targets.length === 0) return;
+
+    const heading = document.createElement("div");
+    heading.textContent = typeLabels[type] || type;
+    heading.style.fontWeight = "600";
+    heading.style.fontSize = "11px";
+    heading.style.marginTop = "8px";
+    heading.style.marginBottom = "4px";
+    heading.style.color = "#666";
+    overlayWrap.appendChild(heading);
+
+    targets.forEach((tgt) => {
+      const row = buildToggleRow(
+        tgt.label,
+        settings.overlays?.[tgt.id] !== false,
+        (checked) => updateSettings({ overlays: { [tgt.id]: checked } })
+      );
+      overlayWrap.appendChild(row);
+    });
   });
 }
 

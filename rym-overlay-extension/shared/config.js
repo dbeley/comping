@@ -33,12 +33,13 @@
   };
 
   const TARGETS = {
-    spotify: { id: "spotify", label: "Spotify" },
-    youtube: { id: "youtube", label: "YouTube" },
-    navidrome: { id: "navidrome", label: "Navidrome" },
-    bandcamp: { id: "bandcamp", label: "Bandcamp" },
-    lastfm: { id: "lastfm", label: "Last.fm" },
-    deezer: { id: "deezer", label: "Deezer" },
+    spotify: { id: "spotify", label: "Spotify", mediaType: "music" },
+    youtube: { id: "youtube", label: "YouTube", mediaType: "music" },
+    navidrome: { id: "navidrome", label: "Navidrome", mediaType: "music" },
+    bandcamp: { id: "bandcamp", label: "Bandcamp", mediaType: "music" },
+    lastfm: { id: "lastfm", label: "Last.fm", mediaType: "music" },
+    deezer: { id: "deezer", label: "Deezer", mediaType: "music" },
+    steam: { id: "steam", label: "Steam", mediaType: "game" },
   };
 
   const DEFAULT_SETTINGS = {
