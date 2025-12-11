@@ -49,19 +49,15 @@ function renderToggles() {
   overlayWrap.innerHTML = "";
 
   Object.values(SOURCES).forEach((src) => {
-    const row = buildToggleRow(
-      src.label,
-      settings.sources?.[src.mediaType] !== false,
-      (checked) => updateSettings({ sources: { [src.mediaType]: checked } })
+    const row = buildToggleRow(src.label, settings.sources?.[src.mediaType] !== false, (checked) =>
+      updateSettings({ sources: { [src.mediaType]: checked } })
     );
     sourceWrap.appendChild(row);
   });
 
   Object.values(TARGETS).forEach((tgt) => {
-    const row = buildToggleRow(
-      tgt.label,
-      settings.overlays?.[tgt.id] !== false,
-      (checked) => updateSettings({ overlays: { [tgt.id]: checked } })
+    const row = buildToggleRow(tgt.label, settings.overlays?.[tgt.id] !== false, (checked) =>
+      updateSettings({ overlays: { [tgt.id]: checked } })
     );
     overlayWrap.appendChild(row);
   });

@@ -9,8 +9,8 @@
 
   async function main() {
     const settings = await fetchSettings();
-    const activeSources = pickSourcesForHost(location.host).filter((source) =>
-      settings.sources[source.mediaType] !== false
+    const activeSources = pickSourcesForHost(location.host).filter(
+      (source) => settings.sources[source.mediaType] !== false
     );
 
     for (const source of activeSources) {
@@ -37,7 +37,7 @@
     try {
       const settings = await browser.runtime.sendMessage({ type: "rym-settings-get" });
       return { ...DEFAULT_SETTINGS, ...settings };
-    } catch (_) {
+    } catch {
       return DEFAULT_SETTINGS;
     }
   }

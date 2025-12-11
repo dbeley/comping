@@ -19,7 +19,7 @@
     getCacheStats: () => {
       if (!cache?.index) return null;
       return Object.values(cache.index).reduce((acc, item) => {
-        const type = item.mediaType || 'unknown';
+        const type = item.mediaType || "unknown";
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {});
@@ -41,9 +41,11 @@
       if (!cache?.index) return [];
       const results = [];
       for (const [key, value] of Object.entries(cache.index)) {
-        if (key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            value.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            value.artist?.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (
+          key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          value.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          value.artist?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) {
           results.push({ key, ...value });
         }
       }
@@ -51,8 +53,14 @@
       return results;
     },
     rescan: () => runScan(),
-    enableDebug: () => { DEBUG = true; log("Debug enabled"); },
-    disableDebug: () => { DEBUG = false; console.log("[rym-navidrome] Debug disabled"); }
+    enableDebug: () => {
+      DEBUG = true;
+      log("Debug enabled");
+    },
+    disableDebug: () => {
+      DEBUG = false;
+      console.log("[rym-navidrome] Debug disabled");
+    },
   };
 
   init().catch((err) => warn("init failed", err));
@@ -81,7 +89,7 @@
 
     // Log some cache stats
     const cacheStats = Object.values(cache.index).reduce((acc, item) => {
-      const type = item.mediaType || 'unknown';
+      const type = item.mediaType || "unknown";
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
@@ -95,7 +103,7 @@
   async function fetchSettings() {
     try {
       return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch (_) {
+    } catch {
       return { overlays: { navidrome: true } };
     }
   }
@@ -103,7 +111,7 @@
   async function fetchCache() {
     try {
       return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch (_) {
+    } catch {
       return null;
     }
   }
@@ -116,11 +124,11 @@
     scheduleScan(true);
     observer = new MutationObserver((mutations) => {
       // Ignore mutations caused by our own badge additions
-      const isBadgeMutation = mutations.every(mutation => {
-        return Array.from(mutation.addedNodes).every(node => {
-          return node.nodeType === 1 && (
-            node.classList?.contains('rym-ext-badge') ||
-            node.querySelector?.('.rym-ext-badge')
+      const isBadgeMutation = mutations.every((mutation) => {
+        return Array.from(mutation.addedNodes).every((node) => {
+          return (
+            node.nodeType === 1 &&
+            (node.classList?.contains("rym-ext-badge") || node.querySelector?.(".rym-ext-badge"))
           );
         });
       });
@@ -175,23 +183,26 @@
       if (!titleCell) return;
 
       const title = titleCell.textContent?.trim() || "";
-      const artist = artistCell?.querySelector("a")?.textContent?.trim() ||
-                     artistCell?.textContent?.trim() || "";
-      const album = albumCell?.querySelector("a")?.textContent?.trim() ||
-                    albumCell?.textContent?.trim() || "";
+      const artist =
+        artistCell?.querySelector("a")?.textContent?.trim() ||
+        artistCell?.textContent?.trim() ||
+        "";
+      const album =
+        albumCell?.querySelector("a")?.textContent?.trim() || albumCell?.textContent?.trim() || "";
 
-      if (idx < 3) { // Log first 3 tracks
+      if (idx < 3) {
+        // Log first 3 tracks
         log(`Track ${idx}:`, { title, artist, album });
       }
 
       // For track rows, we want to show track (song) ratings
-      attachBadge(titleCell, artist, title, 'song');
+      attachBadge(titleCell, artist, title, "song");
     });
   }
 
   function annotateAlbumTiles() {
     // Grid-based album cards on homepage (01) and artist page (03)
-    const tiles = document.querySelectorAll('li.MuiGridListTile-root');
+    const tiles = document.querySelectorAll("li.MuiGridListTile-root");
     log(`Found ${tiles.length} album tiles`);
 
     tiles.forEach((tile, idx) => {
@@ -199,8 +210,8 @@
       tile.querySelectorAll(".rym-ext-badge").forEach((b) => b.remove());
 
       // Get album title from image alt
-      const albumImg = tile.querySelector('img[alt]');
-      const title = (albumImg?.alt || albumImg?.getAttribute('alt') || "").trim();
+      const albumImg = tile.querySelector("img[alt]");
+      const title = (albumImg?.alt || albumImg?.getAttribute("alt") || "").trim();
 
       if (!title) {
         if (idx < 3) log(`Tile ${idx}: No title found`);
@@ -209,22 +220,23 @@
 
       // Try to find artist info - may not be present in grid view
       const artistLink = tile.querySelector('a[href*="#/artist/"]');
-      const artistText = tile.querySelector('.MuiGridListTileBar-title');
+      const artistText = tile.querySelector(".MuiGridListTileBar-title");
       const artist = (artistLink?.textContent || artistText?.textContent || "").trim();
 
-      if (idx < 3) { // Log first 3 albums
+      if (idx < 3) {
+        // Log first 3 albums
         log(`Album ${idx}:`, { title, artist });
       }
 
       // Attach badge to the tile container (needs to have position relative for absolute positioning)
-      const tileContainer = tile.querySelector('.MuiGridListTile-tile') || tile;
+      const tileContainer = tile.querySelector(".MuiGridListTile-tile") || tile;
 
       // Ensure the container has position relative for absolute positioning
-      if (tileContainer.style.position !== 'absolute') {
-        tileContainer.style.position = 'relative';
+      if (tileContainer.style.position !== "absolute") {
+        tileContainer.style.position = "relative";
       }
 
-      attachBadge(tileContainer, artist, title, 'release');
+      attachBadge(tileContainer, artist, title, "release");
     });
   }
 
@@ -234,7 +246,8 @@
 
     // Check if we're on an album page (view or edit mode)
     const hash = window.location.hash;
-    const isAlbumPage = hash.includes('#/album/') && (hash.includes('/show') || /\/album\/[^\/]+$/.test(hash));
+    const isAlbumPage =
+      hash.includes("#/album/") && (hash.includes("/show") || /\/album\/[^\/]+$/.test(hash));
 
     if (!isAlbumPage) {
       return;
@@ -259,16 +272,16 @@
     // Try to find artist from the first track row on the page
     const firstTrackRow = document.querySelector('tr[resource="song"]');
     const artistCell = firstTrackRow?.querySelector(".column-artist");
-    const artist = artistCell?.querySelector("a")?.textContent?.trim() ||
-                   artistCell?.textContent?.trim() || "";
+    const artist =
+      artistCell?.querySelector("a")?.textContent?.trim() || artistCell?.textContent?.trim() || "";
 
     log("Album banner:", { title, artist });
 
     // Attach badge to the title element
-    attachBadge(titleEl, artist, title, 'release');
+    attachBadge(titleEl, artist, title, "release");
   }
 
-  function attachBadge(target, artist, title, mediaType = 'release') {
+  function attachBadge(target, artist, title, mediaType = "release") {
     if (!title || !title.trim()) {
       return;
     }
@@ -355,12 +368,12 @@
 
     // Adjust saturation and lightness for better contrast
     // Higher ratings get slightly darker and more saturated
-    const saturation = 70 + (normalizedValue * 15); // 70-85%
-    const lightness = 52 - (normalizedValue * 10);  // 52-42%
+    const saturation = 70 + normalizedValue * 15; // 70-85%
+    const lightness = 52 - normalizedValue * 10; // 52-42%
 
     return {
       bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-      fg: "#ffffff"
+      fg: "#ffffff",
     };
   }
 
@@ -383,12 +396,12 @@
     // If a preferred type is specified, check if it matches
     if (preferredType) {
       // 'release' matches both 'release' and 'album' in the cache
-      if (preferredType === 'release') {
-        return matchType === 'release' || matchType === 'album';
+      if (preferredType === "release") {
+        return matchType === "release" || matchType === "album";
       }
       // 'song' matches 'song' or 'track' in the cache
-      if (preferredType === 'song') {
-        return matchType === 'song' || matchType === 'track';
+      if (preferredType === "song") {
+        return matchType === "song" || matchType === "track";
       }
       return matchType === preferredType;
     }

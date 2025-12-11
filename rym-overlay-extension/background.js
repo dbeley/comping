@@ -48,14 +48,12 @@
     lastfm: { id: "lastfm", label: "Last.fm" },
     deezer: { id: "deezer", label: "Deezer" },
   };
-  const SOURCES = api.SOURCES || FALLBACK_SOURCES;
-  const TARGETS = api.TARGETS || FALLBACK_TARGETS;
-  const DEFAULT_SETTINGS =
-    api.DEFAULT_SETTINGS ||
-    {
-      sources: Object.fromEntries(Object.values(FALLBACK_SOURCES).map((src) => [src.mediaType, true])),
-      overlays: Object.fromEntries(Object.values(FALLBACK_TARGETS).map((t) => [t.id, true])),
-    };
+  const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || {
+    sources: Object.fromEntries(
+      Object.values(FALLBACK_SOURCES).map((src) => [src.mediaType, true])
+    ),
+    overlays: Object.fromEntries(Object.values(FALLBACK_TARGETS).map((t) => [t.id, true])),
+  };
 
   const CACHE_KEY = "rym-cache-v2";
   const SETTINGS_KEY = "rym-settings";
@@ -76,8 +74,8 @@
         entries: Array.isArray(message.records)
           ? message.records.length
           : message.records
-          ? Object.keys(message.records).length
-          : 0,
+            ? Object.keys(message.records).length
+            : 0,
       });
       return handleCacheUpdate(message.records, { source, mediaType });
     }

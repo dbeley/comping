@@ -24,9 +24,7 @@
     "http://www.glitchwave.com/*"
   ],
   "background": {
-    "scripts": [
-      "background.js"
-    ],
+    "scripts": ["background.js"],
     "persistent": false
   },
   "browser_action": {
@@ -63,17 +61,9 @@
         "http://*/navidrome/*",
         "https://*/navidrome/*"
       ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/navidrome-overlay.js"
-      ],
+      "js": ["shared/normalize.js", "shared/config.js", "content/navidrome-overlay.js"],
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [
-    "content/data-sync.js",
-    "shared/normalize.js",
-    "shared/config.js"
-  ]
+  "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]
 }

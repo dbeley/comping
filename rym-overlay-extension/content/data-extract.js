@@ -93,7 +93,10 @@
       return batches;
     }
 
-    if (context.pageId === "page_chart" && document.documentElement.classList.contains("glitchwave")) {
+    if (
+      context.pageId === "page_chart" &&
+      document.documentElement.classList.contains("glitchwave")
+    ) {
       addBatch("game", "extract:charts:game", extractGameChart());
       return batches;
     }
@@ -158,15 +161,25 @@
     const table = extractInfoTable(".album_info");
     const record = baseRecord("release", location.href);
     record.name = text(document.querySelector(".album_title"));
-    record.artist = text(document.querySelector(".album_info .artist, .album_artist_small .artist"));
+    record.artist = text(
+      document.querySelector(".album_info .artist, .album_artist_small .artist")
+    );
     record.type = table.Type || "";
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
     record.maxRating = text(document.querySelector(".max_rating span, .max_rating"));
-    record.ratingCount = toNumber(text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span")));
-    record.reviewCount = toNumber(text(document.querySelector(".num_reviews b span, .num_reviews b, .num_reviews span")));
-    record.primaryGenres = texts(document.querySelectorAll(".release_pri_genres .genre")).join(", ");
-    record.secondaryGenres = texts(document.querySelectorAll(".release_sec_genres .genre")).join(", ");
+    record.ratingCount = toNumber(
+      text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span"))
+    );
+    record.reviewCount = toNumber(
+      text(document.querySelector(".num_reviews b span, .num_reviews b, .num_reviews span"))
+    );
+    record.primaryGenres = texts(document.querySelectorAll(".release_pri_genres .genre")).join(
+      ", "
+    );
+    record.secondaryGenres = texts(document.querySelectorAll(".release_sec_genres .genre")).join(
+      ", "
+    );
     record.descriptors = text(document.querySelector(".release_pri_descriptors"));
     record.languages = table.Language || "";
     record.image = pickSrc(document.querySelector(".coverart img, .release_art img"));
@@ -205,7 +218,9 @@
       record.name = text(link);
       record.artist = artist;
       record.ratingValue = text(el.querySelector(".page_artist_tracks_track_stats_rating"));
-      record.ratingCount = toNumber(text(el.querySelector(".page_artist_tracks_track_stats_count")));
+      record.ratingCount = toNumber(
+        text(el.querySelector(".page_artist_tracks_track_stats_count"))
+      );
       record.isPartial = true;
       items.push(record);
     });
@@ -219,15 +234,35 @@
       if (!link) return;
       const record = baseRecord(mediaType, link.href || "");
       record.name = text(link);
-      record.artist = text(item.querySelector(".component_discography_item_info a.artist, .component_discography_item_info a.film_artist"));
+      record.artist = text(
+        item.querySelector(
+          ".component_discography_item_info a.artist, .component_discography_item_info a.film_artist"
+        )
+      );
       const details = item.querySelectorAll(".component_discography_item_details span");
       if (details.length) {
         record.releaseDate = text(details[0]);
         if (details[1]) record.type = text(details[1]);
       }
-      record.ratingValue = text(item.querySelector(".component_discography_item_details_average_num, .component_discography_item_details_average"));
-      record.ratingCount = toNumber(text(item.querySelector(".component_discography_item_details_ratings .full, .component_discography_item_details_ratings .abbr")));
-      record.reviewCount = toNumber(text(item.querySelector(".component_discography_item_details_reviews .full, .component_discography_item_details_reviews .abbr")));
+      record.ratingValue = text(
+        item.querySelector(
+          ".component_discography_item_details_average_num, .component_discography_item_details_average"
+        )
+      );
+      record.ratingCount = toNumber(
+        text(
+          item.querySelector(
+            ".component_discography_item_details_ratings .full, .component_discography_item_details_ratings .abbr"
+          )
+        )
+      );
+      record.reviewCount = toNumber(
+        text(
+          item.querySelector(
+            ".component_discography_item_details_reviews .full, .component_discography_item_details_reviews .abbr"
+          )
+        )
+      );
       record.image = pickSrc(item.querySelector("img.ui_image_img"));
       record.isPartial = false;
       items.push(record);
@@ -242,12 +277,27 @@
       if (!link) return;
       const record = baseRecord("song", link.href || "");
       record.name = text(link);
-      record.artist = text(item.querySelector(".page_charts_section_charts_item_credited_text .artist"));
-      record.releaseDate = text(item.querySelector(".page_charts_section_charts_item_title_date_compact span, .page_charts_section_charts_item_date span"));
-      record.primaryGenres = texts(item.querySelectorAll(".page_charts_section_charts_item_genres_primary a.genre"))
-        .join(", ");
-      record.ratingValue = text(item.querySelector(".page_charts_section_charts_item_details_average_num"));
-      record.ratingCount = toNumber(text(item.querySelector(".page_charts_section_charts_item_details_ratings .full, .page_charts_section_charts_item_details_ratings .abbr")));
+      record.artist = text(
+        item.querySelector(".page_charts_section_charts_item_credited_text .artist")
+      );
+      record.releaseDate = text(
+        item.querySelector(
+          ".page_charts_section_charts_item_title_date_compact span, .page_charts_section_charts_item_date span"
+        )
+      );
+      record.primaryGenres = texts(
+        item.querySelectorAll(".page_charts_section_charts_item_genres_primary a.genre")
+      ).join(", ");
+      record.ratingValue = text(
+        item.querySelector(".page_charts_section_charts_item_details_average_num")
+      );
+      record.ratingCount = toNumber(
+        text(
+          item.querySelector(
+            ".page_charts_section_charts_item_details_ratings .full, .page_charts_section_charts_item_details_ratings .abbr"
+          )
+        )
+      );
       record.image = pickSrc(item.querySelector(".page_charts_section_charts_item_image img"));
       record.isPartial = false;
       items.push(record);
@@ -263,12 +313,19 @@
       document.querySelectorAll(".page_song_header_info_rest .pipe_separated")
     );
     record.type = "Song";
-    record.ratingValue = text(document.querySelector(".page_section_main_info_music_rating_value_rating"));
-    record.ratingCount = toNumber(text(document.querySelector(".page_section_main_info_music_rating_value_number")));
-    record.primaryGenres = texts(document.querySelectorAll(".page_song_header_info_genre_item_primary a.genre"))
-      .join(", ");
+    record.ratingValue = text(
+      document.querySelector(".page_section_main_info_music_rating_value_rating")
+    );
+    record.ratingCount = toNumber(
+      text(document.querySelector(".page_section_main_info_music_rating_value_number"))
+    );
+    record.primaryGenres = texts(
+      document.querySelectorAll(".page_song_header_info_genre_item_primary a.genre")
+    ).join(", ");
     record.album = text(document.querySelector(".page_song_header_info_rest a.album"));
-    record.image = pickSrc(document.querySelector(".page_song_header_image img, .page_section_charts_item_image img"));
+    record.image = pickSrc(
+      document.querySelector(".page_song_header_image img, .page_section_charts_item_image img")
+    );
     record.isPartial = false;
     return [record];
   }
@@ -281,13 +338,20 @@
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
     record.maxRating = text(document.querySelector(".max_rating span, .max_rating"));
-    record.ratingCount = toNumber(text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span")));
-    record.reviewCount = toNumber(text(document.querySelector(".num_reviews b span, .num_reviews b, .num_reviews span")));
-    record.primaryGenres = texts(document.querySelectorAll(".extra_metadata_genres a, .release_pri_genres .genre"))
-      .join(", ");
-    record.secondaryGenres = texts(document.querySelectorAll(".extra_metadata_sec_genres a, .release_sec_genres .genre"))
-      .join(", ");
-    record.descriptors = table.Descriptors || text(document.querySelector(".release_pri_descriptors"));
+    record.ratingCount = toNumber(
+      text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span"))
+    );
+    record.reviewCount = toNumber(
+      text(document.querySelector(".num_reviews b span, .num_reviews b, .num_reviews span"))
+    );
+    record.primaryGenres = texts(
+      document.querySelectorAll(".extra_metadata_genres a, .release_pri_genres .genre")
+    ).join(", ");
+    record.secondaryGenres = texts(
+      document.querySelectorAll(".extra_metadata_sec_genres a, .release_sec_genres .genre")
+    ).join(", ");
+    record.descriptors =
+      table.Descriptors || text(document.querySelector(".release_pri_descriptors"));
     record.languages = table.Language || "";
     record.image = pickSrc(document.querySelector(".page_release_art_frame img, .film_art img"));
     record.isPartial = false;
@@ -305,8 +369,7 @@
       record.ratingValue = text(card.querySelector(".rating_number_game"));
       record.ratingCount = toNumber(text(card.querySelector(".chart_card_ratings b")));
       record.reviewCount = toNumber(text(card.querySelector(".chart_card_reviews b")));
-      record.primaryGenres = texts(card.querySelectorAll(".chart_genres .genre_"))
-        .join(", ");
+      record.primaryGenres = texts(card.querySelectorAll(".chart_genres .genre_")).join(", ");
       record.image = pickBackground(card.querySelector(".chart_card_image"));
       record.isPartial = false;
       items.push(record);
@@ -316,41 +379,64 @@
 
   function extractGamePage() {
     const record = baseRecord("game", location.href);
-    record.name = text(document.querySelector(".page_object_main_info h1, .page_object_main_info_hdr"));
+    record.name = text(
+      document.querySelector(".page_object_main_info h1, .page_object_main_info_hdr")
+    );
     record.ratingValue = text(document.querySelector(".rating_number_game"));
     record.maxRating = text(document.querySelector(".rating_card_max_rating"));
-    record.ratingCount = toNumber(text(document.querySelector(".rating_card_description a[href$='Ratings'], .rating_card_description")));
-    record.reviewCount = toNumber(text(document.querySelector(".rating_card_description a[href$='Reviews']")));
-    record.primaryGenres = texts(document.querySelectorAll(".main_info_field_genres a.genres, .main_info_field_genres a.genre, .page_object_main_info_field .genres"))
-      .join(", ");
-    record.secondaryGenres = texts(document.querySelectorAll(".main_info_field_sec_genres a.sec_genres"))
-      .join(", ");
-    record.descriptors = texts(document.querySelectorAll(".main_info_field_descriptors, .page_object_main_info_field.main_info_field_sec_genres .genres"))
-      .join(", ");
+    record.ratingCount = toNumber(
+      text(
+        document.querySelector(
+          ".rating_card_description a[href$='Ratings'], .rating_card_description"
+        )
+      )
+    );
+    record.reviewCount = toNumber(
+      text(document.querySelector(".rating_card_description a[href$='Reviews']"))
+    );
+    record.primaryGenres = texts(
+      document.querySelectorAll(
+        ".main_info_field_genres a.genres, .main_info_field_genres a.genre, .page_object_main_info_field .genres"
+      )
+    ).join(", ");
+    record.secondaryGenres = texts(
+      document.querySelectorAll(".main_info_field_sec_genres a.sec_genres")
+    ).join(", ");
+    record.descriptors = texts(
+      document.querySelectorAll(
+        ".main_info_field_descriptors, .page_object_main_info_field.main_info_field_sec_genres .genres"
+      )
+    ).join(", ");
     record.image = pickSrc(document.querySelector(".page_object_image img"));
-    record.platforms = texts(document.querySelectorAll(".page_object_secondary_info_link a.platforms"))
-      .join(", ");
+    record.platforms = texts(
+      document.querySelectorAll(".page_object_secondary_info_link a.platforms")
+    ).join(", ");
     record.isPartial = false;
     return [record];
   }
 
   function extractDeveloperGames() {
     const items = [];
-    document.querySelectorAll("#page_discography_items_game .page_discography_line").forEach((line) => {
-      const link = line.querySelector(".page_discography_line_1 a.game");
-      if (!link) return;
-      const record = baseRecord("game", link.href || "");
-      record.name = text(link);
-      record.ratingValue = text(line.querySelector(".page_discography_average .rating_number"));
-      record.ratingCount = toNumber(text(line.querySelector(".page_discography_ratings")));
-      record.reviewCount = toNumber(text(line.querySelector(".page_discography_reviews")));
-      record.releaseDate = text(line.querySelector(".page_discography_date_year, .page_discography_date_full"));
-      record.primaryGenres = texts(line.querySelectorAll(".page_discography_line_genre"))
-        .join(", ");
-      record.image = pickBackground(line.querySelector(".page_discography_img"));
-      record.isPartial = true;
-      items.push(record);
-    });
+    document
+      .querySelectorAll("#page_discography_items_game .page_discography_line")
+      .forEach((line) => {
+        const link = line.querySelector(".page_discography_line_1 a.game");
+        if (!link) return;
+        const record = baseRecord("game", link.href || "");
+        record.name = text(link);
+        record.ratingValue = text(line.querySelector(".page_discography_average .rating_number"));
+        record.ratingCount = toNumber(text(line.querySelector(".page_discography_ratings")));
+        record.reviewCount = toNumber(text(line.querySelector(".page_discography_reviews")));
+        record.releaseDate = text(
+          line.querySelector(".page_discography_date_year, .page_discography_date_full")
+        );
+        record.primaryGenres = texts(line.querySelectorAll(".page_discography_line_genre")).join(
+          ", "
+        );
+        record.image = pickBackground(line.querySelector(".page_discography_img"));
+        record.isPartial = true;
+        items.push(record);
+      });
     return items;
   }
 
@@ -421,7 +507,7 @@
     try {
       const u = new URL(url, location.origin);
       return u.pathname.replace(/^\/+/, "");
-    } catch (_) {
+    } catch {
       return url;
     }
   }

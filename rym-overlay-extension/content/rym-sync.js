@@ -2,9 +2,7 @@
   const STORAGE_KEY = "rateyourmusic-csv::records";
   const MAX_RETRIES = 12;
   const RETRY_DELAY_MS = 500;
-  syncFromLocal().catch((err) =>
-    console.warn("[rym-overlay] sync failed", err)
-  );
+  syncFromLocal().catch((err) => console.warn("[rym-overlay] sync failed", err));
 
   async function syncFromLocal() {
     console.debug("[rym-overlay] rym-sync content script loaded");
@@ -23,11 +21,7 @@
     }
 
     console.debug("[rym-overlay] sending cache update", {
-      entries: Array.isArray(parsed)
-        ? parsed.length
-        : parsed
-        ? Object.keys(parsed).length
-        : 0,
+      entries: Array.isArray(parsed) ? parsed.length : parsed ? Object.keys(parsed).length : 0,
       source: location.href,
     });
     await browser.runtime.sendMessage({
