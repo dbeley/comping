@@ -122,6 +122,15 @@
     const rating = match.ratingValue || "?";
     link.textContent = `RYM ${rating}`;
     link.title = buildTooltip(match);
+
+    // Apply gradient color based on rating (0-5 scale)
+    const ratingNum = parseFloat(rating);
+    if (!isNaN(ratingNum)) {
+      const color = getRatingColor(ratingNum);
+      link.style.background = color.bg;
+      link.style.color = color.fg;
+    }
+
     if (match.url) {
       link.href = match.url;
       link.target = "_blank";
@@ -129,6 +138,18 @@
       link.style.textDecoration = "none";
     }
     return link;
+  }
+
+  function getRatingColor(rating) {
+    // Clamp rating to 0-5 range
+    const clamped = Math.max(0, Math.min(5, rating));
+    // Map 0-5 to hue 0 (red) to 120 (green)
+    const hue = (clamped / 5) * 120;
+    // Use HSL: full saturation, medium lightness for vibrant colors
+    return {
+      bg: `hsl(${hue}, 85%, 50%)`,
+      fg: "#ffffff"
+    };
   }
 
   function buildTooltip(match) {
@@ -164,12 +185,9 @@
         cursor: default;
         display: inline-flex;
         align-items: center;
-        background: #ffeb3b;
-        color: #202020;
       }
       .rym-ext-badge-navidrome {
-        background: #00bcd4;
-        color: #002b36;
+        /* Background and color set dynamically based on rating */
       }
     `;
     document.documentElement.appendChild(style);

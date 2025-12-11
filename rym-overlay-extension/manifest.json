@@ -18,16 +18,10 @@
     "http://www.rateyourmusic.com/*",
     "https://rym.com/*",
     "http://rym.com/*",
-    "https://open.spotify.com/*",
-    "https://www.youtube.com/*",
     "https://glitchwave.com/*",
     "http://glitchwave.com/*",
     "https://www.glitchwave.com/*",
-    "http://www.glitchwave.com/*",
-    "https://www.last.fm/*",
-    "https://bandcamp.com/*",
-    "https://*.bandcamp.com/*",
-    "https://www.deezer.com/*"
+    "http://www.glitchwave.com/*"
   ],
   "background": {
     "scripts": [
@@ -63,28 +57,6 @@
     },
     {
       "matches": [
-        "https://open.spotify.com/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/spotify-overlay.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://www.youtube.com/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/youtube-overlay.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
         "http://localhost/*",
         "http://127.0.0.1/*",
         "http://navidrome.docker-era.home/*",
@@ -95,40 +67,6 @@
         "shared/normalize.js",
         "shared/config.js",
         "content/navidrome-overlay.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://*.bandcamp.com/*",
-        "https://bandcamp.com/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/bandcamp-overlay.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://www.last.fm/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/lastfm-overlay.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://www.deezer.com/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/deezer-overlay.js"
       ],
       "run_at": "document_idle"
     }
