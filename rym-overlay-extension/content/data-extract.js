@@ -2,22 +2,20 @@
   const api = window.__RYM_EXT__ || {};
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
 
+  let chartObserver = null;
+  let chartRefreshTimer = null;
+  let chartHookTimer = null;
+  let chartContainer = null;
+  let chartContainerWatcher = null;
+  let chartPollInterval = null;
+  let chartExtractionInFlight = false;
+
   main().catch((err) => console.warn("[rym-overlay] extract failed", err));
 
   async function main() {
     const settings = await fetchSettings();
-    const context = getContext();
-    const batches = collectExtractions(context, settings);
-
-    for (const batch of batches) {
-      if (!batch.records.length) continue;
-      await browser.runtime.sendMessage({
-        type: "rym-cache-update",
-        records: batch.records,
-        source: batch.source,
-        mediaType: batch.mediaType,
-      });
-    }
+    await runExtraction(settings);
+    setupChartObservers(settings);
   }
 
   async function fetchSettings() {
@@ -112,6 +110,120 @@
     }
 
     return batches;
+  }
+
+  async function runExtraction(settings) {
+    if (chartExtractionInFlight) return;
+    chartExtractionInFlight = true;
+    try {
+      const context = getContext();
+      const batches = collectExtractions(context, settings);
+
+      for (const batch of batches) {
+        if (!batch.records.length) continue;
+        await browser.runtime.sendMessage({
+          type: "rym-cache-update",
+          records: batch.records,
+          source: batch.source,
+          mediaType: batch.mediaType,
+        });
+      }
+    } finally {
+      chartExtractionInFlight = false;
+    }
+  }
+
+  function setupChartObservers(settings) {
+    if (document.documentElement.id !== "page_charts") return;
+    ensureChartContainerWatcher(settings);
+    const container = findChartContainer();
+    if (!container) return;
+
+    if (chartObserver) {
+      chartObserver.disconnect();
+    }
+
+    const scheduleRefresh = () => {
+      if (chartRefreshTimer) clearTimeout(chartRefreshTimer);
+      chartRefreshTimer = setTimeout(() => {
+        runExtraction(settings).catch((err) =>
+          console.warn("[rym-overlay] chart refresh failed", err)
+        );
+      }, 500);
+    };
+
+    chartContainer = container;
+    chartObserver = new MutationObserver((mutations) => {
+      const relevant = mutations.some(
+        (mutation) => mutation.addedNodes.length || mutation.removedNodes.length
+      );
+      if (relevant) scheduleRefresh();
+    });
+    chartObserver.observe(container, { childList: true, subtree: true });
+
+    const originalPushState = history.pushState?.bind(history);
+    const originalReplaceState = history.replaceState?.bind(history);
+
+    if (originalPushState) {
+      history.pushState = function (...args) {
+        originalPushState(...args);
+        scheduleRefresh();
+      };
+    }
+
+    if (originalReplaceState) {
+      history.replaceState = function (...args) {
+        originalReplaceState(...args);
+        scheduleRefresh();
+      };
+    }
+
+    window.addEventListener("popstate", scheduleRefresh);
+
+    hookChartNavigation(scheduleRefresh);
+    chartHookTimer = setTimeout(() => hookChartNavigation(scheduleRefresh), 500);
+
+    if (!chartPollInterval) {
+      chartPollInterval = setInterval(() => scheduleRefresh(), 2000);
+    }
+  }
+
+  function ensureChartContainerWatcher(settings) {
+    if (chartContainerWatcher) return;
+    chartContainerWatcher = new MutationObserver(() => {
+      const next = findChartContainer();
+      if (next && next !== chartContainer) {
+        setupChartObservers(settings);
+      }
+    });
+    chartContainerWatcher.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function findChartContainer() {
+    return (
+      document.querySelector(".page_charts_section_charts_items") ||
+      document.querySelector("#page_charts_section_charts")
+    );
+  }
+
+  function hookChartNavigation(scheduleRefresh) {
+    const wrap = (obj, key) => {
+      if (!obj || typeof obj[key] !== "function") return;
+      if (obj[key]._rymExtWrapped) return;
+      const original = obj[key].bind(obj);
+      obj[key] = function (...args) {
+        const result = original(...args);
+        Promise.resolve(result)
+          .catch(() => {})
+          .finally(() => scheduleRefresh());
+        return result;
+      };
+      obj[key]._rymExtWrapped = true;
+    };
+
+    wrap(window.RYMpagination, "callback");
+    wrap(window.page?.charts, "loadPage");
+    wrap(window.page?.charts, "reloadPage");
   }
 
   function extractHomeNewReleases() {
