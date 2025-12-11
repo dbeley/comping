@@ -193,19 +193,32 @@
     document.querySelectorAll(".disco_release").forEach((el) => {
       const titleLink = el.querySelector(".disco_mainline a.album");
       if (!titleLink) return;
+      const releaseType = lookupPreviousLabel(el);
+      if (!isAllowedReleaseType(releaseType)) return;
       const record = baseRecord(mediaType, titleLink.href || "");
       record.name = text(titleLink);
       record.artist = artist;
-      record.releaseDate = text(el.querySelector(".disco_year_ymd, .disco_year_ym"));
+      record.releaseDate = text(el.querySelector(".disco_year_ymd, .disco_year_ym, .disco_year_y"));
       record.ratingValue = text(el.querySelector(".disco_avg_rating"));
       record.ratingCount = toNumber(text(el.querySelector(".disco_ratings")));
       record.reviewCount = toNumber(text(el.querySelector(".disco_reviews")));
-      record.type = lookupPreviousLabel(el);
-      record.image = pickBackground(el.querySelector(".disco_rel_img"));
+      record.type = releaseType;
+      record.image = pickSrc(el.querySelector(".disco_info img"));
       record.isPartial = true;
       items.push(record);
     });
     return items;
+  }
+
+  function isAllowedReleaseType(type) {
+    const normalized = (type || "").toLowerCase().trim();
+    return (
+      normalized === "album" ||
+      normalized === "ep" ||
+      normalized === "compilation" ||
+      normalized === "live" ||
+      normalized === "live album"
+    );
   }
 
   function extractArtistTopSongs() {
@@ -229,44 +242,54 @@
 
   function extractComponentChart(mediaType) {
     const items = [];
-    document.querySelectorAll(".component_discography_item").forEach((item) => {
-      const link = item.querySelector(".component_discography_item_link");
+
+    // Extract main chart items (.page_charts_section_charts_item)
+    document.querySelectorAll(".page_charts_section_charts_item").forEach((item) => {
+      const link = item.querySelector(".page_charts_section_charts_item_link");
       if (!link) return;
       const record = baseRecord(mediaType, link.href || "");
       record.name = text(link);
       record.artist = text(
         item.querySelector(
-          ".component_discography_item_info a.artist, .component_discography_item_info a.film_artist"
+          ".page_charts_section_charts_item_credited_links_primary a.artist, .page_charts_section_charts_item_credited_links_primary a.film_artist"
         )
       );
-      const details = item.querySelectorAll(".component_discography_item_details span");
-      if (details.length) {
-        record.releaseDate = text(details[0]);
-        if (details[1]) record.type = text(details[1]);
+
+      // Extract release date and type
+      const dateCompact = item.querySelector(".page_charts_section_charts_item_title_date_compact");
+      if (dateCompact) {
+        const dateSpan = dateCompact.querySelector("span");
+        if (dateSpan) {
+          record.releaseDate = text(dateSpan);
+        }
+        const typeSpan = dateCompact.querySelector(".page_charts_section_charts_item_release_type");
+        if (typeSpan) {
+          record.type = text(typeSpan);
+        }
       }
+
+      // Extract rating value
       record.ratingValue = text(
         item.querySelector(
-          ".component_discography_item_details_average_num, .component_discography_item_details_average"
+          ".page_charts_section_charts_item_details_average_num, .page_charts_section_charts_item_details_average"
         )
       );
-      record.ratingCount = toNumber(
-        text(
-          item.querySelector(
-            ".component_discography_item_details_ratings .full, .component_discography_item_details_ratings .abbr"
-          )
-        )
-      );
-      record.reviewCount = toNumber(
-        text(
-          item.querySelector(
-            ".component_discography_item_details_reviews .full, .component_discography_item_details_reviews .abbr"
-          )
-        )
-      );
+
+      // Extract ratings and reviews
+      const ratingsEl = item.querySelector(".page_charts_section_charts_item_details_ratings");
+      if (ratingsEl) {
+        record.ratingCount = toNumber(text(ratingsEl));
+      }
+      const reviewsEl = item.querySelector(".page_charts_section_charts_item_details_reviews");
+      if (reviewsEl) {
+        record.reviewCount = toNumber(text(reviewsEl));
+      }
+
       record.image = pickSrc(item.querySelector("img.ui_image_img"));
       record.isPartial = false;
       items.push(record);
     });
+
     return items;
   }
 
@@ -452,12 +475,25 @@
   }
 
   function lookupPreviousLabel(el) {
+    // First check siblings of the element itself
     let node = el.previousElementSibling;
     while (node) {
       const label = node.querySelector?.(".disco_header_label");
       if (label) return text(label);
       node = node.previousElementSibling;
     }
+
+    // If not found, check siblings of the parent container
+    const parent = el.parentElement;
+    if (parent) {
+      node = parent.previousElementSibling;
+      while (node) {
+        const label = node.querySelector?.(".disco_header_label");
+        if (label) return text(label);
+        node = node.previousElementSibling;
+      }
+    }
+
     return "";
   }
 

@@ -18,7 +18,7 @@
     getCacheStats: () => {
       if (!cache?.index) return null;
       return Object.values(cache.index).reduce((acc, item) => {
-        const type = item.mediaType || 'unknown';
+        const type = item.mediaType || "unknown";
         acc[type] = (acc[type] || 0) + 1;
         return acc;
       }, {});
@@ -40,8 +40,10 @@
       if (!cache?.index) return [];
       const results = [];
       for (const [key, value] of Object.entries(cache.index)) {
-        if (key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            value.name?.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (
+          key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          value.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        ) {
           results.push({ key, ...value });
         }
       }
@@ -49,8 +51,14 @@
       return results;
     },
     rescan: () => runScan(),
-    enableDebug: () => { DEBUG = true; log("Debug enabled"); },
-    disableDebug: () => { DEBUG = false; console.log("[glitchwave-steam] Debug disabled"); }
+    enableDebug: () => {
+      DEBUG = true;
+      log("Debug enabled");
+    },
+    disableDebug: () => {
+      DEBUG = false;
+      console.log("[glitchwave-steam] Debug disabled");
+    },
   };
 
   init().catch((err) => warn("init failed", err));
@@ -79,7 +87,7 @@
 
     // Log some cache stats
     const cacheStats = Object.values(cache.index).reduce((acc, item) => {
-      const type = item.mediaType || 'unknown';
+      const type = item.mediaType || "unknown";
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {});
@@ -93,7 +101,7 @@
   async function fetchSettings() {
     try {
       return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch (_) {
+    } catch {
       return { overlays: { steam: true } };
     }
   }
@@ -101,25 +109,27 @@
   async function fetchCache() {
     try {
       return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch (_) {
+    } catch {
       return null;
     }
   }
 
   function isSteam() {
-    return window.location.hostname.includes('steampowered.com') ||
-           window.location.hostname.includes('store.steampowered.com');
+    return (
+      window.location.hostname.includes("steampowered.com") ||
+      window.location.hostname.includes("store.steampowered.com")
+    );
   }
 
   function observe() {
     scheduleScan(true);
     observer = new MutationObserver((mutations) => {
       // Ignore mutations caused by our own badge additions
-      const isBadgeMutation = mutations.every(mutation => {
-        return Array.from(mutation.addedNodes).every(node => {
-          return node.nodeType === 1 && (
-            node.classList?.contains('gw-ext-badge') ||
-            node.querySelector?.('.gw-ext-badge')
+      const isBadgeMutation = mutations.every((mutation) => {
+        return Array.from(mutation.addedNodes).every((node) => {
+          return (
+            node.nodeType === 1 &&
+            (node.classList?.contains("gw-ext-badge") || node.querySelector?.(".gw-ext-badge"))
           );
         });
       });
@@ -156,7 +166,7 @@
 
   function annotateGameCards() {
     // Homepage game cards (.store_capsule)
-    const cards = document.querySelectorAll('.store_capsule');
+    const cards = document.querySelectorAll(".store_capsule");
     log(`Found ${cards.length} game cards on homepage`);
 
     cards.forEach((card, idx) => {
@@ -164,8 +174,8 @@
       card.querySelectorAll(".gw-ext-badge").forEach((b) => b.remove());
 
       // Get game title from image alt
-      const img = card.querySelector('.capsule img, img');
-      const title = (img?.alt || img?.getAttribute('alt') || "").trim();
+      const img = card.querySelector(".capsule img, img");
+      const title = (img?.alt || img?.getAttribute("alt") || "").trim();
 
       if (!title) {
         if (idx < 3) log(`Card ${idx}: No title found`);
@@ -177,20 +187,20 @@
       }
 
       // Find the capsule image container
-      const capsule = card.querySelector('.capsule, .capsule_image_ctn') || card;
+      const capsule = card.querySelector(".capsule, .capsule_image_ctn") || card;
 
       // Ensure the container has position relative for absolute positioning
-      if (capsule.style.position !== 'absolute') {
-        capsule.style.position = 'relative';
+      if (capsule.style.position !== "absolute") {
+        capsule.style.position = "relative";
       }
 
-      attachBadge(capsule, title, 'game');
+      attachBadge(capsule, title);
     });
   }
 
   function annotateGamePage() {
     // Game page title (#appHubAppName)
-    const titleEl = document.querySelector('#appHubAppName');
+    const titleEl = document.querySelector("#appHubAppName");
     if (!titleEl) return;
 
     // Remove existing badges
@@ -202,12 +212,12 @@
     log("Game page:", { title });
 
     // Attach badge after the title
-    attachBadge(titleEl, title, 'game');
+    attachBadge(titleEl, title);
   }
 
   function annotateSearchResults() {
     // Search results (.search_result_row)
-    const results = document.querySelectorAll('.search_result_row');
+    const results = document.querySelectorAll(".search_result_row");
     log(`Found ${results.length} search results`);
 
     results.forEach((result, idx) => {
@@ -215,7 +225,7 @@
       result.querySelectorAll(".gw-ext-badge").forEach((b) => b.remove());
 
       // Get game title from .search_name .title
-      const titleEl = result.querySelector('.search_name .title');
+      const titleEl = result.querySelector(".search_name .title");
       const title = titleEl?.textContent?.trim() || "";
 
       if (!title) {
@@ -228,19 +238,19 @@
       }
 
       // Find the capsule image container
-      const capsule = result.querySelector('.search_capsule');
+      const capsule = result.querySelector(".search_capsule");
       if (!capsule) return;
 
       // Ensure the container has position relative for absolute positioning
-      if (capsule.style.position !== 'absolute') {
-        capsule.style.position = 'relative';
+      if (capsule.style.position !== "absolute") {
+        capsule.style.position = "relative";
       }
 
-      attachBadge(capsule, title, 'game');
+      attachBadge(capsule, title);
     });
   }
 
-  function attachBadge(target, title, mediaType = 'game') {
+  function attachBadge(target, title) {
     if (!title || !title.trim()) {
       return;
     }
@@ -262,7 +272,7 @@
 
     // Check if this is the right type of media (game/videogame)
     const matchType = match.mediaType || "";
-    if (matchType && !['game', 'videogame', 'video-game'].includes(matchType.toLowerCase())) {
+    if (matchType && !["game", "videogame", "video-game"].includes(matchType.toLowerCase())) {
       return;
     }
 
@@ -322,12 +332,12 @@
     const hue = normalizedValue * 180;
 
     // Adjust saturation and lightness for better contrast
-    const saturation = 70 + (normalizedValue * 15); // 70-85%
-    const lightness = 52 - (normalizedValue * 10);  // 52-42%
+    const saturation = 70 + normalizedValue * 15; // 70-85%
+    const lightness = 52 - normalizedValue * 10; // 52-42%
 
     return {
       bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-      fg: "#ffffff"
+      fg: "#ffffff",
     };
   }
 

@@ -15,7 +15,9 @@ repos:
     hooks:
       - id: eslint
         files: \.(js)$
+        exclude: ^eslint.config\.js$
         types: [file]
+        args: [--fix]
         additional_dependencies:
           - eslint@9.15.0
           - globals@15.12.0

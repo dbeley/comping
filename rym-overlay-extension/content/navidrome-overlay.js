@@ -164,6 +164,51 @@
     annotateAlbumBanner();
   }
 
+  function getArtistFromPage() {
+    // Try multiple methods to extract artist name from page context
+
+    // Method 1: From first track row on the page
+    const firstTrackRow = document.querySelector('tr[resource="song"]');
+    if (firstTrackRow) {
+      const artistCell = firstTrackRow.querySelector(".column-artist");
+      const artist =
+        artistCell?.querySelector("a")?.textContent?.trim() ||
+        artistCell?.textContent?.trim() ||
+        "";
+      if (artist) return artist;
+    }
+
+    // Method 2: From page title (if it contains " - ")
+    const titleEl = document.querySelector('#react-admin-title, h6[id="react-admin-title"]');
+    if (titleEl) {
+      const fullText = titleEl.textContent?.trim() || "";
+      // Format: "Navidrome  - [Artist Name]"
+      const titleMatch = fullText.match(/Navidrome\s+-\s+(.+)/);
+      if (titleMatch) {
+        const extractedText = titleMatch[1].trim();
+        // Remove common suffixes that aren't the artist name
+        const cleanedArtist = extractedText
+          .replace(/\s+-\s+Albums$/, "")
+          .replace(/\s+Albums$/, "")
+          .trim();
+        if (cleanedArtist) return cleanedArtist;
+      }
+    }
+
+    // Method 3: From biography or artist info section
+    const bioSection = document.querySelector(".MuiTypography-root.MuiTypography-body1");
+    if (bioSection) {
+      const bioText = bioSection.textContent?.trim() || "";
+      // Try to extract artist name from first sentence if it's structured like "ARTIST is a..."
+      const bioMatch = bioText.match(/^([^,\.]+)\s+(is|are|was|were)\s+/);
+      if (bioMatch) {
+        return bioMatch[1].trim();
+      }
+    }
+
+    return "";
+  }
+
   function annotateTrackRows() {
     // Handle both regular songs and playlist tracks
     // File 02 (album): tr[resource="song"] - only track ratings
@@ -203,7 +248,16 @@
   function annotateAlbumTiles() {
     // Grid-based album cards on homepage (01) and artist page (03)
     const tiles = document.querySelectorAll("li.MuiGridListTile-root");
-    log(`Found ${tiles.length} album tiles`);
+    const hash = window.location.hash;
+    const isArtistPage = hash.includes("#/artist/");
+    log(`Found ${tiles.length} album tiles (page: ${hash}, isArtistPage: ${isArtistPage})`);
+
+    // On artist pages, extract the artist name from page context
+    let pageArtist = "";
+    if (isArtistPage) {
+      pageArtist = getArtistFromPage();
+      log(`Extracted artist from page: "${pageArtist}"`);
+    }
 
     tiles.forEach((tile, idx) => {
       // Remove existing badges
@@ -221,19 +275,31 @@
       // Try to find artist info - may not be present in grid view
       const artistLink = tile.querySelector('a[href*="#/artist/"]');
       const artistText = tile.querySelector(".MuiGridListTileBar-title");
-      const artist = (artistLink?.textContent || artistText?.textContent || "").trim();
+      let artist = (artistLink?.textContent || artistText?.textContent || "").trim();
 
-      if (idx < 3) {
-        // Log first 3 albums
-        log(`Album ${idx}:`, { title, artist });
+      // On artist pages, use the artist from page context if not found in tile
+      if (isArtistPage && !artist) {
+        artist = pageArtist;
       }
 
       // Attach badge to the tile container (needs to have position relative for absolute positioning)
       const tileContainer = tile.querySelector(".MuiGridListTile-tile") || tile;
 
       // Ensure the container has position relative for absolute positioning
-      if (tileContainer.style.position !== "absolute") {
+      const currentPosition = window.getComputedStyle(tileContainer).position;
+      if (currentPosition !== "relative" && currentPosition !== "absolute") {
         tileContainer.style.position = "relative";
+      }
+
+      if (idx < 3 || isArtistPage) {
+        // Log first 3 albums, or all albums on artist page
+        log(
+          `Album ${idx} (artist page: ${isArtistPage}):`,
+          { title, artist },
+          "container:",
+          tileContainer.className,
+          `position: ${currentPosition}`
+        );
       }
 
       attachBadge(tileContainer, artist, title, "release");
@@ -302,6 +368,7 @@
 
     // Check if this is the right type of media
     if (!isMatchable(match, mediaType)) {
+      log(`✗ Type mismatch: "${title}" is ${match.mediaType}, expected ${mediaType}`);
       return;
     }
 
@@ -312,7 +379,7 @@
 
     const badge = buildBadge(match);
     target.appendChild(badge);
-    log(`✓ "${title}" → ${match.ratingValue}`);
+    log(`✓ BADGE ATTACHED: "${title}" → ${match.ratingValue} (target: ${target.className})`);
   }
 
   function buildBadge(match) {
@@ -432,14 +499,15 @@
         /* Background and color set dynamically based on rating */
       }
       /* Badge in grid tiles (album cards) - always visible */
-      .MuiGridListTile-root .rym-ext-badge {
+      .MuiGridListTile-root .MuiGridListTile-tile .rym-ext-badge,
+      .MuiGridListTile-tile > .rym-ext-badge {
         position: absolute !important;
         top: 4px;
         right: 4px;
         margin: 0;
         font-size: 9px;
         padding: 3px 6px;
-        z-index: 2;
+        z-index: 10;
         opacity: 1 !important;
         visibility: visible !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);

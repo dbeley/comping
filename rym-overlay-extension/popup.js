@@ -67,7 +67,7 @@ function renderToggles() {
     music: "Music streaming",
     game: "Video games",
     film: "Movies",
-    other: "Other"
+    other: "Other",
   };
 
   Object.entries(targetsByType).forEach(([type, targets]) => {
@@ -83,10 +83,8 @@ function renderToggles() {
     overlayWrap.appendChild(heading);
 
     targets.forEach((tgt) => {
-      const row = buildToggleRow(
-        tgt.label,
-        settings.overlays?.[tgt.id] !== false,
-        (checked) => updateSettings({ overlays: { [tgt.id]: checked } })
+      const row = buildToggleRow(tgt.label, settings.overlays?.[tgt.id] !== false, (checked) =>
+        updateSettings({ overlays: { [tgt.id]: checked } })
       );
       overlayWrap.appendChild(row);
     });

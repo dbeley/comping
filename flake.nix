@@ -27,6 +27,8 @@
             # JavaScript linting and formatting
             nodePackages.eslint
             nodePackages.prettier
+
+            web-ext
           ];
 
           shellHook = ''

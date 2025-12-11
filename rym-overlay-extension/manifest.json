@@ -3,7 +3,7 @@
   "name": "RYM Cache Overlay",
   "version": "0.1.0",
   "description": "Display cached RateYourMusic ratings on Spotify, YouTube, and other sites using the CSV tracker data already stored in your browser.",
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "rym-cache-overlay@example.com",
       "strict_min_version": "91.0"
@@ -65,15 +65,8 @@
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://store.steampowered.com/*",
-        "http://store.steampowered.com/*"
-      ],
-      "js": [
-        "shared/normalize.js",
-        "shared/config.js",
-        "content/steam-overlay.js"
-      ],
+      "matches": ["https://store.steampowered.com/*", "http://store.steampowered.com/*"],
+      "js": ["shared/normalize.js", "shared/config.js", "content/steam-overlay.js"],
       "run_at": "document_idle"
     }
   ],
