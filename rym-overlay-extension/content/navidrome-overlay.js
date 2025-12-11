@@ -327,13 +327,39 @@
   }
 
   function getRatingColor(rating) {
-    // Clamp rating to 0-5 range
-    const clamped = Math.max(0, Math.min(5, rating));
-    // Map 0-5 to hue 0 (red) to 120 (green)
-    const hue = (clamped / 5) * 120;
-    // Use HSL: full saturation, medium lightness for vibrant colors
+    // Programmatic gradient for 0-5 scale
+    // AGGRESSIVE compression 0-3, VERY PROGRESSIVE 3-4, compressed 4-5
+    // Each 0.1 difference in 3-4 range should be clearly visible
+
+    // Clamp to 0-5
+    const clampedRating = Math.max(0, Math.min(5, rating));
+
+    // Non-linear mapping with extreme focus on 3-4 range
+    let normalizedValue;
+
+    if (clampedRating < 3.0) {
+      // AGGRESSIVE compress: 0-3 maps to 0-0.1 (only 10% of gradient)
+      normalizedValue = (clampedRating / 3.0) * 0.1;
+    } else if (clampedRating < 4.0) {
+      // VERY PROGRESSIVE expand: 3-4 maps to 0.1-0.8 (70% of gradient!)
+      // Each 0.1 step = 7% of total gradient = ~12.6 degrees hue change
+      normalizedValue = 0.1 + ((clampedRating - 3.0) / 1.0) * 0.7;
+    } else {
+      // Compress high range: 4-5 maps to 0.8-1.0 (20% of gradient)
+      normalizedValue = 0.8 + ((clampedRating - 4.0) / 1.0) * 0.2;
+    }
+
+    // Map to hue: 0 (red) to 180 (cyan)
+    // Red -> Orange -> Yellow -> Green -> Cyan
+    const hue = normalizedValue * 180;
+
+    // Adjust saturation and lightness for better contrast
+    // Higher ratings get slightly darker and more saturated
+    const saturation = 70 + (normalizedValue * 15); // 70-85%
+    const lightness = 52 - (normalizedValue * 10);  // 52-42%
+
     return {
-      bg: `hsl(${hue}, 85%, 50%)`,
+      bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
       fg: "#ffffff"
     };
   }
