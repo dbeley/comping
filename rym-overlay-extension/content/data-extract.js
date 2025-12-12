@@ -279,7 +279,11 @@
     record.type = table.Type || "";
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
-    record.maxRating = text(document.querySelector(".max_rating span, .max_rating"));
+    record.maxRating = extractMaxRating(
+      "[itemprop=reviewRating] [itemprop=bestRating]",
+      ".max_rating span",
+      ".max_rating"
+    );
     record.ratingCount = toNumber(
       text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span"))
     );
@@ -472,7 +476,11 @@
     record.directors = text(document.querySelector(".film_info a.film_artist"));
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
-    record.maxRating = text(document.querySelector(".max_rating span, .max_rating"));
+    record.maxRating = extractMaxRating(
+      "[itemprop=reviewRating] [itemprop=bestRating]",
+      ".max_rating span",
+      ".max_rating"
+    );
     record.ratingCount = toNumber(
       text(document.querySelector(".num_ratings b span, .num_ratings b, .num_ratings span"))
     );
@@ -518,7 +526,10 @@
       document.querySelector(".page_object_main_info h1, .page_object_main_info_hdr")
     );
     record.ratingValue = text(document.querySelector(".rating_number_game"));
-    record.maxRating = text(document.querySelector(".rating_card_max_rating"));
+    record.maxRating = extractMaxRating(
+      ".rating_card_max_rating [itemprop=bestRating]",
+      ".rating_card_max_rating"
+    );
     record.ratingCount = toNumber(
       text(
         document.querySelector(
@@ -630,6 +641,33 @@
   function text(node) {
     if (!node) return "";
     return (node.textContent || "").replace(/\s+/g, " ").trim();
+  }
+
+  function extractMaxRating(...selectors) {
+    for (const selector of selectors) {
+      if (!selector) continue;
+      const node = document.querySelector(selector);
+      if (!node) continue;
+
+      const candidates = [
+        node.getAttribute?.("content"),
+        node.getAttribute?.("aria-label"),
+        node.getAttribute?.("value"),
+        text(node),
+      ];
+
+      for (const raw of candidates) {
+        if (!raw) continue;
+        const match = String(raw).match(/(\d+(?:\.\d+)?)/);
+        if (!match) continue;
+        const parsed = parseFloat(match[1]);
+        if (Number.isFinite(parsed)) {
+          return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
+        }
+        return match[1];
+      }
+    }
+    return "";
   }
 
   function texts(nodes) {
