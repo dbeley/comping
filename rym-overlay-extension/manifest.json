@@ -78,6 +78,17 @@
       "matches": ["https://www.last.fm/*", "http://www.last.fm/*"],
       "js": ["shared/normalize.js", "shared/config.js", "content/lastfm-overlay.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "http://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "http://m.youtube.com/*",
+        "https://music.youtube.com/*"
+      ],
+      "js": ["shared/normalize.js", "shared/config.js", "content/youtube-overlay.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]
