@@ -7,6 +7,7 @@
   const keyFor = api.keyFor || (() => "");
   const MATCHABLE_TYPES = ["release", "song"];
   let cache = null;
+  let typeIndex = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
@@ -86,6 +87,9 @@
       warn("No cache available");
       return;
     }
+
+    typeIndex = buildTypeIndex(cache.entries || []);
+    log("Type index built keys:", typeIndex ? Object.keys(typeIndex).length : 0);
 
     // Log some cache stats
     const cacheStats = Object.values(cache.index).reduce((acc, item) => {
@@ -352,12 +356,11 @@
       return;
     }
 
-    const key = keyFor(artist, title);
+    const { key, match, mismatchType } = findMatch(artist, title, mediaType);
     if (!key || !key.trim()) {
       return;
     }
 
-    const match = cache.index[key];
     if (!match) {
       // Only log 5% of misses to avoid spam
       if (Math.random() < 0.05) {
@@ -366,9 +369,10 @@
       return;
     }
 
-    // Check if this is the right type of media
-    if (!isMatchable(match, mediaType)) {
-      log(`✗ Type mismatch: "${title}" is ${match.mediaType}, expected ${mediaType}`);
+    if (mismatchType) {
+      log(
+        `✗ Type mismatch: "${title}" is ${mismatchType}, expected ${mediaType} (checked alternates)`
+      );
       return;
     }
 
@@ -380,6 +384,59 @@
     const badge = buildBadge(match);
     target.appendChild(badge);
     log(`✓ BADGE ATTACHED: "${title}" → ${match.ratingValue} (target: ${target.className})`);
+  }
+
+  function findMatch(artist, title, preferredType) {
+    const key = keyFor(artist, title);
+    if (!key || !key.trim()) return { key, match: null };
+
+    const direct = cache.index[key];
+    if (direct && isMatchable(direct, preferredType)) {
+      return { key, match: direct };
+    }
+
+    const fallback = findByType(key, preferredType);
+    if (fallback) {
+      if (direct) {
+        log(
+          `Resolved mismatch for "${title}": index has ${direct.mediaType}, using ${fallback.mediaType}`
+        );
+      }
+      return { key, match: fallback };
+    }
+
+    return { key, match: null, mismatchType: direct?.mediaType };
+  }
+
+  function findByType(key, preferredType) {
+    if (!typeIndex || !preferredType) return null;
+    const bucket = typeIndex[key];
+    if (!bucket) return null;
+    const preferredTypes = getPreferredTypes(preferredType);
+    for (const type of preferredTypes) {
+      if (bucket[type]) return bucket[type];
+    }
+    return null;
+  }
+
+  function buildTypeIndex(entries) {
+    const map = {};
+    for (const entry of entries) {
+      const key = keyFor(entry.artist || "", entry.name || "");
+      if (!key) continue;
+      const mediaType = entry.mediaType || "release";
+      map[key] = map[key] || {};
+      const existing = map[key][mediaType];
+      if (existing && !existing.isPartial && entry.isPartial) continue;
+      map[key][mediaType] = entry;
+    }
+    return map;
+  }
+
+  function getPreferredTypes(preferredType) {
+    if (preferredType === "release") return ["release", "album"];
+    if (preferredType === "song") return ["song", "track"];
+    return [preferredType];
   }
 
   function buildBadge(match) {

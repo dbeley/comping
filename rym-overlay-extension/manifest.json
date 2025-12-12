@@ -68,6 +68,16 @@
       "matches": ["https://store.steampowered.com/*", "http://store.steampowered.com/*"],
       "js": ["shared/normalize.js", "shared/config.js", "content/steam-overlay.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://*/web/*", "https://*/web/*"],
+      "js": ["shared/normalize.js", "shared/config.js", "content/jellyfin-overlay.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.last.fm/*", "http://www.last.fm/*"],
+      "js": ["shared/normalize.js", "shared/config.js", "content/lastfm-overlay.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]

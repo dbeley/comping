@@ -48,6 +48,7 @@
     lastfm: { id: "lastfm", label: "Last.fm", mediaType: "music" },
     deezer: { id: "deezer", label: "Deezer", mediaType: "music" },
     steam: { id: "steam", label: "Steam", mediaType: "game" },
+    jellyfin: { id: "jellyfin", label: "Jellyfin", mediaType: "film" },
   };
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || {
     sources: Object.fromEntries(
