@@ -5,6 +5,7 @@
 
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
+  const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
   let cache = null;
   let settings = null;
   let styleInjected = false;
@@ -256,16 +257,27 @@
     }
 
     // For games, typically no "artist" - just use the title
-    const key = keyFor("", title);
-    if (!key || !key.trim()) {
+    // Try multiple key variations (full title and with version suffix stripped)
+    const keys = alternativeKeys("", title);
+    if (!keys || keys.length === 0) {
       return;
     }
 
-    const match = cache.index[key];
+    // Try to find a match using any of the alternative keys
+    let match = null;
+    let matchedKey = null;
+    for (const key of keys) {
+      if (cache.index[key]) {
+        match = cache.index[key];
+        matchedKey = key;
+        break;
+      }
+    }
+
     if (!match) {
       // Only log 5% of misses to avoid spam
       if (Math.random() < 0.05) {
-        log(`No match for: "${title}" (key: "${key}")`);
+        log(`No match for: "${title}" (tried keys: ${keys.join(", ")})`);
       }
       return;
     }
@@ -283,7 +295,7 @@
 
     const badge = buildBadge(match);
     target.appendChild(badge);
-    log(`✓ "${title}" → ${match.ratingValue}`);
+    log(`✓ "${title}" → ${match.ratingValue} (key: ${matchedKey})`);
   }
 
   function buildBadge(match) {
