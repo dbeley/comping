@@ -13,3 +13,5 @@ build/
 # direnv
 .direnv/
 .envrc.cache
+
+.claude
