@@ -182,15 +182,55 @@
     const artist = meta.artist;
     if (!artist) return;
 
-    document.querySelectorAll("#top-albums .artist-top-albums-item-name").forEach((node, idx) => {
-      const link = node.querySelector("a");
-      const title = link?.textContent?.trim() || node.textContent?.trim() || "";
+    document.querySelectorAll("#top-albums .artist-top-albums-item").forEach((node, idx) => {
+      const nameEl = node.querySelector(".artist-top-albums-item-name");
+      const link = nameEl?.querySelector("a");
+      const title = link?.textContent?.trim() || nameEl?.textContent?.trim() || "";
       if (!title) {
         if (idx < 2) log("Album item missing title");
         return;
       }
-      attachBadge(node, artist, title, "release");
+
+      // Find the parent container that has the image
+      const container = node.closest(".artist-top-albums-item-wrap") || node;
+      attachBadgeToAlbum(container, artist, title);
     });
+  }
+
+  function attachBadgeToAlbum(container, artist, title) {
+    if (!title || !title.trim()) return;
+
+    const key = keyFor(artist, title);
+    if (!key || !key.trim()) return;
+
+    const existing = container.querySelector(".rym-ext-badge-lastfm");
+    if (existing?.dataset?.rymKey === key) {
+      return;
+    }
+    if (existing) {
+      existing.remove();
+    }
+
+    const match = cache.index[key];
+    if (!match) {
+      if (Math.random() < 0.05) {
+        log(`No match for: "${artist}" - "${title}" (key: "${key}")`);
+      }
+      return;
+    }
+
+    if (!isMatchable(match, "release")) {
+      log(`✗ Type mismatch: "${title}" is ${match.mediaType}, expected release`);
+      return;
+    }
+
+    if (container.querySelector(".rym-ext-badge-lastfm")) return;
+
+    const badge = buildBadge(match);
+    badge.classList.add("rym-ext-badge-album-overlay");
+    container.style.position = "relative";
+    container.appendChild(badge);
+    log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
   }
 
   function getPageMeta() {
@@ -340,6 +380,22 @@
         font-size: 12px;
         padding: 4px 8px;
         margin-left: 10px;
+      }
+      .rym-ext-badge-album-overlay {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        margin-left: 0;
+        z-index: 10;
+        font-size: 11px;
+        padding: 4px 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      .rym-ext-badge-album-overlay:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       }
     `;
     document.documentElement.appendChild(style);
