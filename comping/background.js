@@ -1,4 +1,7 @@
 (function () {
+  // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
+  const browser = globalThis.browser || globalThis.chrome;
+
   if (typeof importScripts === "function") {
     try {
       importScripts("shared/normalize.js", "shared/config.js");

@@ -1,4 +1,7 @@
 (function () {
+  // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
+  const browser = globalThis.browser || globalThis.chrome;
+
   const api = window.__RYM_EXT__ || {};
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
 

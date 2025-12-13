@@ -1,4 +1,7 @@
 (function () {
+  // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
+  const browser = globalThis.browser || globalThis.chrome;
+
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
   const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
