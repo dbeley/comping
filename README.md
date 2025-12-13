@@ -1,8 +1,8 @@
 # Comping
 
-> An add-on to accompany your browsing by adding notes on works cached from Sonemic websites (music, movies, video games).
+**Comping** is a browser extension that displays ratings from RateYourMusic and Glitchwave as overlay badges on other websites like Spotify, YouTube, and more.
 
-**Comping** is a browser extension that displays ratings and reviews from [Sonemic](https://sonemic.com/) family websites (RateYourMusic, Glitchwave) as overlay badges while you browse streaming platforms like Spotify, YouTube, Last.fm, Jellyfin, and more.
+⚠️ You have to browse RateYourMusic and Glitchwave pages first to cache the data.
 
 ## Platform Support
 
@@ -23,7 +23,7 @@
 
 ## ⚡ Features
 
-- **Automatic caching**: Syncs your ratings from Sonemic websites to browser storage
+- **Automatic caching**: Syncs ratings from RateYourMusic and Glitchwave while you browse them in your local storage
 - **Color-coded ratings**: Visual gradient from red (low) to green (high)
 - **Click-through links**: Click any badge to visit the full review page on the source website
 
@@ -33,7 +33,7 @@
 
 ### 1. Data Collection
 
-Visit any Sonemic website:
+Visit any supported website:
 
 - [RateYourMusic](https://rateyourmusic.com) for music and movies
 - [Glitchwave](https://glitchwave.com) for video games
@@ -56,7 +56,7 @@ When you visit supported platforms (Spotify, YouTube, etc.), Comping:
 
 Click the Comping icon in your browser toolbar to:
 
-- **Enable/disable data sources**: Choose which Sonemic sites to pull data from
+- **Enable/disable data sources**: Choose which data to cache
 - **Toggle overlays**: Enable/disable specific platform integrations
 - **Refresh cache**: Manually trigger a cache update
 - **Export data**: Download your cached ratings as CSV
@@ -83,5 +83,5 @@ Inspired by the jazz tradition of "comping" - providing thoughtful accompaniment
 
 Data sources:
 
-- [Sonemic](https://sonemic.com/) / [RateYourMusic](https://rateyourmusic.com/)
+- [RateYourMusic](https://rateyourmusic.com/)
 - [Glitchwave](https://glitchwave.com/)
