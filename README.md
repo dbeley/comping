@@ -29,6 +29,8 @@
 
 ## Installation
 
+Download the latest release from the [releases page](https://github.com/dbeley/comping/releases).
+
 ## How It Works
 
 ### 1. Data Collection
