@@ -69,22 +69,41 @@
     scanner = createScanScheduler(runScan, { cooldown: 400 });
     scanner.schedule(true);
 
-    setInterval(() => scanner.schedule(), 3000);
+    setInterval(() => scanner.schedule(), 5000);
 
     observer = new MutationObserver((mutations) => {
-      const onlyOurBadges = mutations.every((mutation) => {
-        if (mutation.removedNodes?.length) return false;
-        return Array.from(mutation.addedNodes).every((node) => {
+      let hasRelevantChanges = false;
+
+      for (const mutation of mutations) {
+        // Ignore mutations that only involve our badges
+        const addedNodes = Array.from(mutation.addedNodes);
+        const removedNodes = Array.from(mutation.removedNodes);
+
+        const hasNonBadgeAdditions = addedNodes.some((node) => {
+          if (node.nodeType !== 1) return false;
           return (
-            node.nodeType === 1 &&
-            (node.classList?.contains("rym-ext-badge-youtube") ||
-              node.querySelector?.(".rym-ext-badge-youtube"))
+            !node.classList?.contains("rym-ext-badge-youtube") &&
+            !node.querySelector?.(".rym-ext-badge-youtube")
           );
         });
-      });
-      if (onlyOurBadges) return;
 
-      scanner.schedule(true);
+        const hasNonBadgeRemovals = removedNodes.some((node) => {
+          if (node.nodeType !== 1) return false;
+          return (
+            !node.classList?.contains("rym-ext-badge-youtube") &&
+            !node.querySelector?.(".rym-ext-badge-youtube")
+          );
+        });
+
+        if (hasNonBadgeAdditions || hasNonBadgeRemovals) {
+          hasRelevantChanges = true;
+          break;
+        }
+      }
+
+      if (hasRelevantChanges) {
+        scanner.schedule();
+      }
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -141,8 +160,13 @@
 
       const keys = alternativeKeys(meta.artist, meta.title);
       const primaryKey = keys[0];
+
+      // Skip if already processed with the same key and badge exists
       if (primaryKey && titleEl.dataset.rymExtKey === primaryKey) {
-        return;
+        const existing = titleEl.querySelector(".rym-ext-badge-youtube");
+        if (existing) {
+          return;
+        }
       }
       titleEl.dataset.rymExtKey = primaryKey || "";
 
@@ -207,27 +231,36 @@
     if (!target || !artist || !title) return;
     const keys = cachedKeys || alternativeKeys(artist, title);
     const existing = target.querySelector(".rym-ext-badge-youtube");
-    if (existing?.dataset?.rymKey && keys.includes(existing.dataset.rymKey)) {
-      const match = cache.index[existing.dataset.rymKey];
-      if (match) {
-        updateBadge(existing, match, {
-          prefix: "RYM",
-          colorScheme: ColorSchemes.PROGRESSIVE,
-          includeTitle: true,
-          includeUrl: true,
-        });
-      }
-      return;
-    }
-    if (existing) existing.remove();
 
+    // Find the match first
     const match = keys.map((key) => cache.index?.[key]).find(Boolean);
     if (!match) {
+      // No match found - remove existing badge if present
+      if (existing) existing.remove();
       return;
     }
 
     if (!isMatchable(match, mediaType)) {
+      // Not matchable - remove existing badge if present
+      if (existing) existing.remove();
       return;
+    }
+
+    // Check if existing badge is already correct
+    if (existing?.dataset?.rymKey && keys.includes(existing.dataset.rymKey)) {
+      // Badge exists and key matches - just update it in place
+      updateBadge(existing, match, {
+        prefix: "RYM",
+        colorScheme: ColorSchemes.PROGRESSIVE,
+        includeTitle: true,
+        includeUrl: true,
+      });
+      return;
+    }
+
+    // Only remove and re-add if necessary
+    if (existing) {
+      existing.remove();
     }
 
     const badge = buildBadge(match, {
