@@ -67,13 +67,6 @@ Click the Comping icon in your browser toolbar to:
 - **Refresh cache**: Manually trigger a cache update
 - **Export data**: Download your cached ratings as CSV
 
-## Privacy
-
-- **100% local**: All data stays in your browser
-- **No tracking**: No analytics, no telemetry, no external servers
-- **No accounts**: No sign-up required
-- **Open source**: All code is available for review
-
 ## Contributing
 
 Contributions are welcome! Feel free to:
@@ -82,12 +75,3 @@ Contributions are welcome! Feel free to:
 - Suggest new features
 - Add support for new platforms
 - Improve documentation
-
-## Credits
-
-Inspired by the jazz tradition of "comping" - providing thoughtful accompaniment that enhances without overwhelming.
-
-Data sources:
-
-- [RateYourMusic](https://rateyourmusic.com/)
-- [Glitchwave](https://glitchwave.com/)
