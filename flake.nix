@@ -1,5 +1,5 @@
 {
-  description = "bebopa - RYM Cache Overlay browser extension";
+  description = "Comping browser extension";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
