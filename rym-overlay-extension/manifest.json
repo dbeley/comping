@@ -89,6 +89,11 @@
       ],
       "js": ["shared/normalize.js", "shared/config.js", "content/youtube-overlay.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://open.spotify.com/*"],
+      "js": ["shared/normalize.js", "shared/config.js", "content/spotify-overlay.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]
