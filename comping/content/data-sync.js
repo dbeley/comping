@@ -2,13 +2,17 @@
   const api = window.__RYM_EXT__ || {};
   const SOURCES = api.SOURCES || {};
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
+  const fetchSettings = api.fetchSettings;
+  const delay = api.delay;
+  const safeJsonParse = api.safeJsonParse;
+
   const MAX_RETRIES = 12;
   const RETRY_DELAY_MS = 500;
 
   main().catch((err) => console.warn("[rym-overlay] sync failed", err));
 
   async function main() {
-    const settings = await fetchSettings();
+    const settings = await (fetchSettings ? fetchSettings(DEFAULT_SETTINGS) : getSettings());
     const activeSources = pickSourcesForHost(location.host).filter(
       (source) => settings.sources[source.mediaType] !== false
     );
@@ -20,7 +24,7 @@
         continue;
       }
 
-      const parsed = parse(raw);
+      const parsed = safeJsonParse ? safeJsonParse(raw) : parse(raw);
       if (!parsed) continue;
 
       await browser.runtime.sendMessage({
@@ -33,7 +37,7 @@
     }
   }
 
-  async function fetchSettings() {
+  async function getSettings() {
     try {
       const settings = await browser.runtime.sendMessage({ type: "rym-settings-get" });
       return { ...DEFAULT_SETTINGS, ...settings };
@@ -48,12 +52,13 @@
   }
 
   async function waitForRecords(storageKey) {
+    const delayFn = delay || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     for (let i = 0; i < MAX_RETRIES; i++) {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         return raw;
       }
-      await delay(RETRY_DELAY_MS);
+      await delayFn(RETRY_DELAY_MS);
     }
     return null;
   }
@@ -65,9 +70,5 @@
       console.warn("[rym-overlay] unable to parse stored records", err);
       return null;
     }
-  }
-
-  function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 })();

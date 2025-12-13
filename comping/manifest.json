@@ -46,6 +46,8 @@
       "js": [
         "shared/normalize.js",
         "shared/config.js",
+        "shared/async-utils.js",
+        "shared/dom-utils.js",
         "content/data-sync.js",
         "content/data-extract.js"
       ],
@@ -57,12 +59,32 @@
         "http://*/navidrome/*",
         "https://*/navidrome/*"
       ],
-      "js": ["shared/normalize.js", "shared/config.js", "content/navidrome-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/navidrome-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://store.steampowered.com/*", "http://store.steampowered.com/*"],
-      "js": ["shared/normalize.js", "shared/config.js", "content/steam-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/steam-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -71,12 +93,32 @@
         "http://*/jellyfin/*",
         "https://*/jellyfin/*"
       ],
-      "js": ["shared/normalize.js", "shared/config.js", "content/jellyfin-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/jellyfin-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.last.fm/*", "http://www.last.fm/*"],
-      "js": ["shared/normalize.js", "shared/config.js", "content/lastfm-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/lastfm-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -87,7 +129,17 @@
         "http://m.youtube.com/*",
         "https://music.youtube.com/*"
       ],
-      "js": ["shared/normalize.js", "shared/config.js", "content/youtube-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/youtube-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -97,14 +149,45 @@
         "https://humblebundle.com/*",
         "http://humblebundle.com/*"
       ],
-      "js": ["shared/normalize.js", "shared/config.js", "content/humble-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/humble-overlay.js"
+      ],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://open.spotify.com/*"],
-      "js": ["shared/normalize.js", "shared/config.js", "content/spotify-overlay.js"],
+      "js": [
+        "shared/normalize.js",
+        "shared/config.js",
+        "shared/runtime-utils.js",
+        "shared/debug-utils.js",
+        "shared/dom-utils.js",
+        "shared/observer-utils.js",
+        "shared/badge-utils.js",
+        "shared/match-utils.js",
+        "content/spotify-overlay.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": ["content/data-sync.js", "shared/normalize.js", "shared/config.js"]
+  "web_accessible_resources": [
+    "content/data-sync.js",
+    "shared/normalize.js",
+    "shared/config.js",
+    "shared/async-utils.js",
+    "shared/runtime-utils.js",
+    "shared/debug-utils.js",
+    "shared/dom-utils.js",
+    "shared/observer-utils.js",
+    "shared/badge-utils.js",
+    "shared/match-utils.js"
+  ]
 }

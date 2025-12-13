@@ -1,58 +1,50 @@
 (function () {
-  let DEBUG = true;
-  const log = (...args) => DEBUG && console.log("[rym-lastfm]", ...args);
-  const warn = (...args) => console.warn("[rym-lastfm]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
-  const normalize = api.normalize || ((text) => (text || "").toLowerCase().trim());
-  const MATCHABLE_TYPES = ["release", "album", "song", "track"];
+  const fetchSettings = api.fetchSettings;
+  const fetchCache = api.fetchCache;
+  const getCacheStats = api.getCacheStats;
+  const createDebugger = api.createDebugger;
+  const createBadgeAwareMutationObserver = api.createBadgeAwareMutationObserver;
+  const createScanScheduler = api.createScanScheduler;
+  const buildBadge = api.buildBadge;
+  const isMatchable = api.isMatchable;
+  const ColorSchemes = api.ColorSchemes;
+
   let cache = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
-  let scanScheduled = false;
-  let needsFullScan = false;
+  let scanner = null;
 
-  window.__RYM_LASTFM_DEBUG__ = {
+  const debug = createDebugger("rym-lastfm", {
     getCache: () => cache,
-    getCacheStats: () => {
-      if (!cache?.index) return null;
-      return Object.values(cache.index).reduce((acc, item) => {
-        const type = item.mediaType || "unknown";
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {});
-    },
+    getCacheStats: () => getCacheStats(cache),
     testLookup: (artist, title) => {
       const key = keyFor(artist, title);
-      log(`Test lookup - Key: "${key}"`);
+      debug.log(`Test lookup - Key: "${key}"`);
       const match = cache?.index?.[key];
       if (match) {
-        log("Match found:", match);
+        debug.log("Match found:", match);
         return match;
       }
-      log("No match found");
-      log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
+      debug.log("No match found");
+      debug.log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
       return null;
     },
     rescan: () => runScan(),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[rym-lastfm] Debug disabled");
-    },
-  };
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  window.__RYM_LASTFM_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 
   async function init() {
     if (!isLastfm()) return;
 
-    settings = await fetchSettings();
+    settings = await fetchSettings({ overlays: { lastfm: true } });
     if (!settings?.overlays?.lastfm) {
       log("Overlay disabled in settings");
       return;
@@ -69,60 +61,20 @@
     log("Ready - cache entries:", Object.keys(cache.index).length);
   }
 
-  async function fetchSettings() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch {
-      return { overlays: { lastfm: true } };
-    }
-  }
-
-  async function fetchCache() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch {
-      return null;
-    }
-  }
-
   function isLastfm() {
     return window.location.hostname.includes("last.fm");
   }
 
   function observe() {
-    scheduleScan(true);
-    setInterval(() => scheduleScan(), 3000);
-    observer = new MutationObserver((mutations) => {
-      const onlyOurAdditions = mutations.every((mutation) => {
-        if (mutation.removedNodes?.length) return false;
-        return Array.from(mutation.addedNodes).every((node) => {
-          return (
-            node.nodeType === 1 &&
-            (node.classList?.contains("rym-ext-badge-lastfm") ||
-              node.querySelector?.(".rym-ext-badge-lastfm"))
-          );
-        });
-      });
+    scanner = createScanScheduler(runScan);
+    scanner.schedule(true);
 
-      if (onlyOurAdditions) return;
+    setInterval(() => scanner.schedule(), 3000);
 
-      needsFullScan = true;
-      scheduleScan();
+    observer = createBadgeAwareMutationObserver("rym-ext-badge-lastfm", () => {
+      scanner.schedule(true);
     });
     observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function scheduleScan(full = false) {
-    if (full) needsFullScan = true;
-    if (scanScheduled) return;
-    scanScheduled = true;
-    requestAnimationFrame(() => {
-      scanScheduled = false;
-      if (needsFullScan) {
-        needsFullScan = false;
-        runScan();
-      }
-    });
   }
 
   function runScan() {
@@ -191,7 +143,6 @@
         return;
       }
 
-      // Find the parent container that has the image
       const container = node.closest(".artist-top-albums-item-wrap") || node;
       attachBadgeToAlbum(container, artist, title);
     });
@@ -226,8 +177,13 @@
 
     if (container.querySelector(".rym-ext-badge-lastfm")) return;
 
-    const badge = buildBadge(match);
-    badge.classList.add("rym-ext-badge-album-overlay");
+    const badge = buildBadge(match, {
+      className: "rym-ext-badge rym-ext-badge-lastfm rym-ext-badge-album-overlay",
+      prefix: "RYM",
+      key: key,
+      colorScheme: ColorSchemes.PROGRESSIVE,
+    });
+
     container.style.position = "relative";
     container.appendChild(badge);
     log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
@@ -277,74 +233,15 @@
 
     if (target.querySelector(".rym-ext-badge-lastfm")) return;
 
-    const badge = buildBadge(match);
+    const badge = buildBadge(match, {
+      className: "rym-ext-badge rym-ext-badge-lastfm",
+      prefix: "RYM",
+      key: key,
+      colorScheme: ColorSchemes.PROGRESSIVE,
+    });
+
     target.appendChild(badge);
     log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
-  }
-
-  function isMatchable(match, preferredType = null) {
-    const matchType = match.mediaType || "release";
-    if (preferredType) {
-      if (preferredType === "release") return matchType === "release" || matchType === "album";
-      if (preferredType === "song") return matchType === "song" || matchType === "track";
-      return matchType === preferredType;
-    }
-    return MATCHABLE_TYPES.includes(matchType);
-  }
-
-  function buildBadge(match) {
-    const link = document.createElement(match.url ? "a" : "span");
-    link.className = "rym-ext-badge rym-ext-badge-lastfm";
-    const keyArtist = match.artist || match.album || "";
-    const keyTitle = match.name || match.album || "";
-    link.dataset.rymKey = keyFor(keyArtist, keyTitle);
-    const rating = match.ratingValue || "?";
-    link.textContent = `RYM ${rating}`;
-    link.title = buildTooltip(match);
-
-    const ratingNum = parseFloat(rating);
-    if (!isNaN(ratingNum)) {
-      const color = getRatingColor(ratingNum);
-      link.style.background = color.bg;
-      link.style.color = color.fg;
-    }
-
-    if (match.url) {
-      link.href = match.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.style.textDecoration = "none";
-    }
-
-    return link;
-  }
-
-  function buildTooltip(match) {
-    const bits = [];
-    if (match.ratingValue) {
-      bits.push(`Rating: ${match.ratingValue}${match.maxRating ? "/" + match.maxRating : ""}`);
-    }
-    if (match.ratingCount) bits.push(`Ratings: ${match.ratingCount}`);
-    if (match.reviewCount) bits.push(`Reviews: ${match.reviewCount}`);
-    if (match.updatedAt) bits.push(`Cached: ${match.updatedAt}`);
-    if (match.url) bits.push(`Source: ${match.url}`);
-    return bits.join(" · ");
-  }
-
-  function getRatingColor(rating) {
-    const clamped = Math.max(0, Math.min(5, rating));
-    let normalized;
-
-    if (clamped < 3.0) {
-      normalized = clamped / 3 / 6;
-    } else if (clamped < 4.0) {
-      normalized = 0.5 + ((clamped - 3) / 1) * 0.35;
-    } else {
-      normalized = 0.85 + ((clamped - 4) / 1) * 0.15;
-    }
-
-    const hue = 120 * normalized;
-    return { bg: `hsl(${hue}deg 65% 35%)`, fg: "#fff" };
   }
 
   function injectStyles() {

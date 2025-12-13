@@ -1,54 +1,49 @@
 (function () {
-  let DEBUG = true;
-  const log = (...args) => DEBUG && console.log("[rym-youtube]", ...args);
-  const warn = (...args) => console.warn("[rym-youtube]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || ((artist, title) => `${artist}|${title}`);
   const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
   const stripVersionSuffix = api.stripVersionSuffix || ((text) => text);
-  const MATCHABLE_TYPES = ["release", "album", "song", "track"];
+  const fetchSettings = api.fetchSettings;
+  const fetchCache = api.fetchCache;
+  const createDebugger = api.createDebugger;
+  const createScanScheduler = api.createScanScheduler;
+  const buildBadge = api.buildBadge;
+  const updateBadge = api.updateBadge;
+  const isMatchable = api.isMatchable;
+  const ColorSchemes = api.ColorSchemes;
 
   let cache = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
-  let scanScheduled = false;
-  let scanTimer = null;
-  let lastScanAt = 0;
-  const SCAN_COOLDOWN_MS = 400;
-  let needsFullScan = false;
+  let scanner = null;
 
-  window.__RYM_YOUTUBE_DEBUG__ = {
+  const debug = createDebugger("rym-youtube", {
     getCache: () => cache,
     rescan: () => runScan(),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[rym-youtube] Debug disabled");
-    },
     testLookup: (artist, title) => {
       const keys = alternativeKeys(artist, title);
       for (const key of keys) {
         if (cache?.index?.[key]) {
-          log("Match for", key, cache.index[key]);
+          debug.log("Match for", key, cache.index[key]);
           return cache.index[key];
         }
       }
-      warn("No match for keys", keys);
+      debug.warn("No match for keys", keys);
       return null;
     },
-  };
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  window.__RYM_YOUTUBE_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 
   async function init() {
     if (!isYouTube()) return;
 
-    settings = await fetchSettings();
+    settings = await fetchSettings({ overlays: { youtube: true } });
     if (!settings?.overlays?.youtube) {
       log("Overlay disabled in settings");
       return;
@@ -65,30 +60,17 @@
     log("Ready - cache entries:", Object.keys(cache.index).length);
   }
 
-  async function fetchSettings() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch {
-      return { overlays: { youtube: true } };
-    }
-  }
-
-  async function fetchCache() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch {
-      return null;
-    }
-  }
-
   function isYouTube() {
     const host = window.location.hostname;
     return host.includes("youtube.com") || host === "youtu.be";
   }
 
   function observe() {
-    scheduleScan(true);
-    setInterval(() => scheduleScan(), 3000);
+    scanner = createScanScheduler(runScan, { cooldown: 400 });
+    scanner.schedule(true);
+
+    setInterval(() => scanner.schedule(), 3000);
+
     observer = new MutationObserver((mutations) => {
       const onlyOurBadges = mutations.every((mutation) => {
         if (mutation.removedNodes?.length) return false;
@@ -102,27 +84,9 @@
       });
       if (onlyOurBadges) return;
 
-      needsFullScan = true;
-      scheduleScan();
+      scanner.schedule(true);
     });
     observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function scheduleScan(full = false) {
-    if (full) needsFullScan = true;
-    if (scanScheduled || scanTimer) return;
-    scanScheduled = true;
-    const now = Date.now();
-    const wait = Math.max(0, SCAN_COOLDOWN_MS - (now - lastScanAt));
-    scanTimer = setTimeout(() => {
-      scanScheduled = false;
-      scanTimer = null;
-      lastScanAt = Date.now();
-      if (needsFullScan) {
-        needsFullScan = false;
-        runScan();
-      }
-    }, wait);
   }
 
   function runScan() {
@@ -178,7 +142,6 @@
       const keys = alternativeKeys(meta.artist, meta.title);
       const primaryKey = keys[0];
       if (primaryKey && titleEl.dataset.rymExtKey === primaryKey) {
-        // Already annotated for this item.
         return;
       }
       titleEl.dataset.rymExtKey = primaryKey || "";
@@ -245,8 +208,15 @@
     const keys = cachedKeys || alternativeKeys(artist, title);
     const existing = target.querySelector(".rym-ext-badge-youtube");
     if (existing?.dataset?.rymKey && keys.includes(existing.dataset.rymKey)) {
-      // Badge is already present; refresh text/tooltip in case the rating changed.
-      updateBadge(existing, cache.index[existing.dataset.rymKey]);
+      const match = cache.index[existing.dataset.rymKey];
+      if (match) {
+        updateBadge(existing, match, {
+          prefix: "RYM",
+          colorScheme: ColorSchemes.PROGRESSIVE,
+          includeTitle: true,
+          includeUrl: true,
+        });
+      }
       return;
     }
     if (existing) existing.remove();
@@ -260,90 +230,17 @@
       return;
     }
 
-    const badge = buildBadge(match, keys[0]);
+    const badge = buildBadge(match, {
+      className: "rym-ext-badge rym-ext-badge-youtube",
+      prefix: "RYM",
+      key: keys[0],
+      colorScheme: ColorSchemes.PROGRESSIVE,
+      includeTitle: true,
+      includeUrl: true,
+    });
+
     target.appendChild(badge);
     log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
-  }
-
-  function isMatchable(match, preferredType = null) {
-    const matchType = (match.mediaType || "").toLowerCase();
-    if (preferredType) {
-      if (preferredType === "release") return matchType === "release" || matchType === "album";
-      if (preferredType === "song")
-        return matchType === "song" || matchType === "track" || matchType === "single";
-      return matchType === preferredType;
-    }
-    return MATCHABLE_TYPES.includes(matchType);
-  }
-
-  function buildBadge(match, key) {
-    const link = document.createElement(match.url ? "a" : "span");
-    link.className = "rym-ext-badge rym-ext-badge-youtube";
-    link.dataset.rymKey = key || "";
-    const rating = match.ratingValue || "?";
-    link.textContent = `RYM ${rating}`;
-    link.title = buildTooltip(match);
-
-    const ratingNum = parseFloat(rating);
-    if (!isNaN(ratingNum)) {
-      const color = getRatingColor(ratingNum);
-      link.style.background = color.bg;
-      link.style.color = color.fg;
-    }
-
-    if (match.url) {
-      link.href = match.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.style.textDecoration = "none";
-    }
-
-    return link;
-  }
-
-  function updateBadge(el, match) {
-    if (!el || !match) return;
-    const rating = match.ratingValue || "?";
-    const nextText = `RYM ${rating}`;
-    if (el.textContent !== nextText) el.textContent = nextText;
-    el.title = buildTooltip(match);
-
-    const ratingNum = parseFloat(rating);
-    if (!isNaN(ratingNum)) {
-      const color = getRatingColor(ratingNum);
-      el.style.background = color.bg;
-      el.style.color = color.fg;
-    }
-  }
-
-  function buildTooltip(match) {
-    const bits = [];
-    if (match.artist) bits.push(`Artist: ${match.artist}`);
-    if (match.name) bits.push(`Title: ${match.name}`);
-    if (match.ratingValue) {
-      bits.push(`Rating: ${match.ratingValue}${match.maxRating ? "/" + match.maxRating : ""}`);
-    }
-    if (match.ratingCount) bits.push(`Ratings: ${match.ratingCount}`);
-    if (match.reviewCount) bits.push(`Reviews: ${match.reviewCount}`);
-    if (match.updatedAt) bits.push(`Cached: ${match.updatedAt}`);
-    if (match.url) bits.push(`Source: ${match.url}`);
-    return bits.join(" · ");
-  }
-
-  function getRatingColor(rating) {
-    const clamped = Math.max(0, Math.min(5, rating));
-    let normalized;
-
-    if (clamped < 3.0) {
-      normalized = clamped / 3 / 6;
-    } else if (clamped < 4.0) {
-      normalized = 0.5 + ((clamped - 3) / 1) * 0.35;
-    } else {
-      normalized = 0.85 + ((clamped - 4) / 1) * 0.15;
-    }
-
-    const hue = 120 * normalized;
-    return { bg: `hsl(${hue}deg 65% 35%)`, fg: "#fff" };
   }
 
   function injectStyles() {

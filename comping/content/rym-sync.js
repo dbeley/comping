@@ -1,7 +1,12 @@
 (function () {
+  const api = window.__RYM_EXT__ || {};
+  const delay = api.delay;
+  const safeJsonParse = api.safeJsonParse;
+
   const STORAGE_KEY = "rateyourmusic-csv::records";
   const MAX_RETRIES = 12;
   const RETRY_DELAY_MS = 500;
+
   syncFromLocal().catch((err) => console.warn("[rym-overlay] sync failed", err));
 
   async function syncFromLocal() {
@@ -12,13 +17,8 @@
       return;
     }
 
-    let parsed = null;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      console.warn("[rym-overlay] unable to parse stored records", err);
-      return;
-    }
+    const parsed = safeJsonParse ? safeJsonParse(raw) : parse(raw);
+    if (!parsed) return;
 
     console.debug("[rym-overlay] sending cache update", {
       entries: Array.isArray(parsed) ? parsed.length : parsed ? Object.keys(parsed).length : 0,
@@ -32,6 +32,7 @@
   }
 
   async function waitForRecords() {
+    const delayFn = delay || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     for (let i = 0; i < MAX_RETRIES; i++) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -41,13 +42,17 @@
         });
         return raw;
       }
-      if (raw) return raw;
-      await delay(RETRY_DELAY_MS);
+      await delayFn(RETRY_DELAY_MS);
     }
     return null;
   }
 
-  function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  function parse(raw) {
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn("[rym-overlay] unable to parse stored records", err);
+      return null;
+    }
   }
 })();

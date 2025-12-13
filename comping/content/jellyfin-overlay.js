@@ -1,33 +1,32 @@
 (function () {
-  let DEBUG = true; // Set to false to reduce console noise
-  const log = (...args) => DEBUG && console.log("[rym-jellyfin]", ...args);
-  const warn = (...args) => console.warn("[rym-jellyfin]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
-  const MATCH_MEDIA_TYPE = "film";
+  const fetchSettings = api.fetchSettings;
+  const fetchCache = api.fetchCache;
+  const getCacheStats = api.getCacheStats;
+  const createDebugger = api.createDebugger;
+  const createBadgeAwareMutationObserver = api.createBadgeAwareMutationObserver;
+  const createScanScheduler = api.createScanScheduler;
+  const buildBadge = api.buildBadge;
+  const isFilmMatch = api.isFilmMatch;
+  const text = api.text;
+  const ColorSchemes = api.ColorSchemes;
 
   let cache = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
-  let scanScheduled = false;
-  let needsFullScan = false;
+  let scanner = null;
 
-  // Expose debug helpers for manual testing
-  window.__RYM_JELLYFIN_DEBUG__ = {
+  const debug = createDebugger("rym-jellyfin", {
     rescan: () => runScan(),
     getCache: () => cache,
-    getCacheStats: () => summarizeCache(cache),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[rym-jellyfin] Debug disabled");
-    },
-  };
+    getCacheStats: () => getCacheStats(cache),
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  window.__RYM_JELLYFIN_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 
@@ -39,7 +38,7 @@
     }
     log("Jellyfin detected");
 
-    settings = await fetchSettings();
+    settings = await fetchSettings({ overlays: { jellyfin: true } });
     if (!settings.overlays?.jellyfin) {
       log("Jellyfin overlay disabled in settings");
       return;
@@ -57,22 +56,6 @@
     log("Initialization complete");
   }
 
-  async function fetchSettings() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch {
-      return { overlays: { jellyfin: true } };
-    }
-  }
-
-  async function fetchCache() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch {
-      return null;
-    }
-  }
-
   function isJellyfin() {
     if (document.querySelector('meta[name="application-name"][content="Jellyfin"]')) {
       return true;
@@ -84,39 +67,13 @@
   }
 
   function observe() {
-    scheduleScan(true);
-    observer = new MutationObserver((mutations) => {
-      const isBadgeMutation = mutations.every((mutation) => {
-        return Array.from(mutation.addedNodes).every((node) => {
-          return (
-            node.nodeType === 1 &&
-            (node.classList?.contains("rym-ext-badge-jellyfin") ||
-              node.querySelector?.(".rym-ext-badge-jellyfin"))
-          );
-        });
-      });
+    scanner = createScanScheduler(runScan);
+    scanner.schedule(true);
 
-      if (isBadgeMutation) {
-        return;
-      }
-
-      needsFullScan = true;
-      scheduleScan();
+    observer = createBadgeAwareMutationObserver("rym-ext-badge-jellyfin", () => {
+      scanner.schedule(true);
     });
     observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function scheduleScan(full = false) {
-    if (full) needsFullScan = true;
-    if (scanScheduled) return;
-    scanScheduled = true;
-    requestAnimationFrame(() => {
-      scanScheduled = false;
-      if (needsFullScan) {
-        needsFullScan = false;
-        runScan();
-      }
-    });
   }
 
   function runScan() {
@@ -146,7 +103,14 @@
       if (!target) return;
 
       target.classList.add("rym-ext-jellyfin-container");
-      const badge = buildBadge(match);
+
+      const badge = buildBadge(match, {
+        className: "rym-ext-badge rym-ext-badge-jellyfin",
+        prefix: "RYM",
+        colorScheme: ColorSchemes.LINEAR,
+        includeTitle: true,
+      });
+
       target.appendChild(badge);
       if (idx < 3) {
         log(`✓ BADGE ATTACHED: "${info.title}" → ${match.ratingValue || "?"}`);
@@ -173,72 +137,6 @@
       }
     }
     return null;
-  }
-
-  function isFilmMatch(match, yearHint) {
-    const type = (match.mediaType || "").toLowerCase();
-    if (type !== MATCH_MEDIA_TYPE && type !== "movie") return false;
-    if (!yearHint || !match.releaseDate) return true;
-    return match.releaseDate.includes(yearHint);
-  }
-
-  function buildBadge(match) {
-    const el = document.createElement(match.url ? "a" : "span");
-    el.className = "rym-ext-badge rym-ext-badge-jellyfin";
-    const rating = match.ratingValue || "?";
-    el.textContent = `RYM ${rating}`;
-    el.title = buildTooltip(match);
-
-    const ratingNum = parseFloat(rating);
-    if (!isNaN(ratingNum)) {
-      const color = getRatingColor(ratingNum);
-      el.style.background = color.bg;
-      el.style.color = color.fg;
-    }
-
-    if (match.url) {
-      el.href = match.url;
-      el.target = "_blank";
-      el.rel = "noopener noreferrer";
-    }
-
-    return el;
-  }
-
-  function getRatingColor(rating) {
-    const clamped = Math.max(0, Math.min(5, rating));
-    const normalized = clamped / 5; // 0-1
-    const hue = 20 + normalized * 110; // red-ish to green-ish
-    const saturation = 75;
-    const lightness = 48 - normalized * 8;
-    return {
-      bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-      fg: "#ffffff",
-    };
-  }
-
-  function buildTooltip(match) {
-    const bits = [];
-    const title = match.name || "Unknown title";
-    const directors = match.directors || match.artist || "";
-    bits.push(directors ? `${title} — ${directors}` : title);
-    if (match.ratingValue) {
-      bits.push(`Rating: ${match.ratingValue}${match.maxRating ? "/" + match.maxRating : ""}`);
-    }
-    if (match.ratingCount) bits.push(`Ratings: ${match.ratingCount}`);
-    if (match.reviewCount) bits.push(`Reviews: ${match.reviewCount}`);
-    if (match.releaseDate) bits.push(`Year: ${match.releaseDate}`);
-    if (match.updatedAt) bits.push(`Cached: ${match.updatedAt}`);
-    return bits.join(" · ");
-  }
-
-  function summarizeCache(currentCache) {
-    if (!currentCache?.index) return null;
-    return Object.values(currentCache.index).reduce((acc, item) => {
-      const type = item.mediaType || "unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
   }
 
   function injectStyles() {
@@ -275,10 +173,5 @@
       }
     `;
     document.head.appendChild(style);
-  }
-
-  function text(node) {
-    if (!node) return "";
-    return (node.textContent || "").replace(/\s+/g, " ").trim();
   }
 })();

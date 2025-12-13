@@ -1,32 +1,32 @@
 (function () {
-  let DEBUG = true; // Set to false to reduce console noise
-  const log = (...args) => DEBUG && console.log("[rym-spotify]", ...args);
-  const warn = (...args) => console.warn("[rym-spotify]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
+  const fetchSettings = api.fetchSettings;
+  const fetchCache = api.fetchCache;
+  const getCacheStats = api.getCacheStats;
+  const createDebugger = api.createDebugger;
+  const createBadgeAwareMutationObserver = api.createBadgeAwareMutationObserver;
+  const createScanScheduler = api.createScanScheduler;
+  const buildBadge = api.buildBadge;
+  const isMatchable = api.isMatchable;
+  const text = api.text;
+  const ColorSchemes = api.ColorSchemes;
 
   let cache = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
-  let scanScheduled = false;
-  let needsFullScan = false;
+  let scanner = null;
 
-  // Expose debug helpers for manual testing
-  window.__RYM_SPOTIFY_DEBUG__ = {
+  const debug = createDebugger("rym-spotify", {
     rescan: () => runScan(),
     getCache: () => cache,
-    getCacheStats: () => summarizeCache(cache),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[rym-spotify] Debug disabled");
-    },
-  };
+    getCacheStats: () => getCacheStats(cache),
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  window.__RYM_SPOTIFY_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 
@@ -38,7 +38,7 @@
     }
     log("Spotify detected");
 
-    settings = await fetchSettings();
+    settings = await fetchSettings({ overlays: { spotify: true } });
     if (!settings.overlays?.spotify) {
       log("Spotify overlay disabled in settings");
       return;
@@ -56,60 +56,18 @@
     log("Initialization complete");
   }
 
-  async function fetchSettings() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
-    } catch {
-      return { overlays: { spotify: true } };
-    }
-  }
-
-  async function fetchCache() {
-    try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
-    } catch {
-      return null;
-    }
-  }
-
   function isSpotify() {
     return /open\.spotify\.com/.test(window.location.hostname);
   }
 
   function observe() {
-    scheduleScan(true);
-    observer = new MutationObserver((mutations) => {
-      const isBadgeMutation = mutations.every((mutation) => {
-        return Array.from(mutation.addedNodes).every((node) => {
-          return (
-            node.nodeType === 1 &&
-            (node.classList?.contains("rym-ext-badge-spotify") ||
-              node.querySelector?.(".rym-ext-badge-spotify"))
-          );
-        });
-      });
+    scanner = createScanScheduler(runScan);
+    scanner.schedule(true);
 
-      if (isBadgeMutation) {
-        return;
-      }
-
-      needsFullScan = true;
-      scheduleScan();
+    observer = createBadgeAwareMutationObserver("rym-ext-badge-spotify", () => {
+      scanner.schedule(true);
     });
     observer.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function scheduleScan(full = false) {
-    if (full) needsFullScan = true;
-    if (scanScheduled) return;
-    scanScheduled = true;
-    requestAnimationFrame(() => {
-      scanScheduled = false;
-      if (needsFullScan) {
-        needsFullScan = false;
-        Promise.resolve(runScan()).catch((err) => warn("scan failed", err));
-      }
-    });
   }
 
   async function runScan() {
@@ -139,7 +97,6 @@
   }
 
   async function annotateArtistPage() {
-    // Get artist name from the title
     const artistName = extractArtistName();
     if (!artistName) {
       log("Could not extract artist name");
@@ -147,10 +104,7 @@
     }
     log("Artist name:", artistName);
 
-    // Annotate album cards in discography section
     await annotateAlbumCards(artistName);
-
-    // Annotate tracks in top tracks section
     await annotateTrackRows(artistName);
   }
 
@@ -162,15 +116,11 @@
     }
     log("Album info:", albumInfo);
 
-    // Annotate the album header
     await annotateAlbumHeader(albumInfo);
-
-    // Annotate individual tracks
     await annotateTrackRows(albumInfo.artist);
   }
 
   async function annotatePlaylistPage() {
-    // Annotate track rows in playlist
     await annotateTrackRows();
   }
 
@@ -182,13 +132,11 @@
       const logIndex = idx;
       idx += 1;
 
-      // Find parent card container
       const cardContainer = card.closest(
         '[data-testid="component-shelf"] > div > div, .grid-container > div'
       );
       if (!cardContainer) continue;
 
-      // Remove existing badges
       cardContainer.querySelectorAll(".rym-ext-badge-spotify").forEach((b) => b.remove());
 
       const albumLink = cardContainer.querySelector('a[href*="/album/"]');
@@ -208,7 +156,13 @@
         continue;
       }
 
-      const badge = buildBadge(match);
+      const badge = buildBadge(match, {
+        className: "rym-ext-badge rym-ext-badge-spotify",
+        prefix: "RYM",
+        colorScheme: ColorSchemes.LINEAR,
+        includeTitle: true,
+      });
+
       const imageContainer = card.parentElement;
       if (imageContainer) {
         imageContainer.style.position = "relative";
@@ -230,7 +184,6 @@
       const logIndex = idx;
       idx += 1;
 
-      // Remove existing badges
       row.querySelectorAll(".rym-ext-badge-spotify").forEach((b) => b.remove());
 
       const trackInfo = extractTrackInfo(row);
@@ -252,12 +205,16 @@
         continue;
       }
 
-      const badge = buildBadge(match, true);
+      const badge = buildBadge(match, {
+        className: "rym-ext-badge rym-ext-badge-spotify rym-ext-badge-compact",
+        prefix: "RYM",
+        compact: true,
+        colorScheme: ColorSchemes.LINEAR,
+        includeTitle: true,
+      });
 
-      // Find the actual track title element (usually has dir="auto" attribute)
       const titleElement = row.querySelector('[dir="auto"]');
       if (titleElement) {
-        // Insert badge before the title text
         titleElement.insertBefore(badge, titleElement.firstChild);
         if (logIndex < 3) {
           log(`✓ BADGE ATTACHED: "${trackInfo.title}" → ${match.ratingValue || "?"}`);
@@ -275,7 +232,6 @@
       return;
     }
 
-    // Remove existing badges
     header.querySelectorAll(".rym-ext-badge-spotify").forEach((b) => b.remove());
 
     const match = await findMatch({
@@ -290,7 +246,13 @@
       return;
     }
 
-    const badge = buildBadge(match);
+    const badge = buildBadge(match, {
+      className: "rym-ext-badge rym-ext-badge-spotify",
+      prefix: "RYM",
+      colorScheme: ColorSchemes.LINEAR,
+      includeTitle: true,
+    });
+
     badge.style.position = "relative";
     badge.style.display = "inline-block";
     badge.style.marginLeft = "12px";
@@ -301,13 +263,11 @@
   }
 
   function extractArtistName() {
-    // Try from page title first
     const titleMatch = document.title.match(/^(.+?)\s*-\s*Spotify$/);
     if (titleMatch) {
       return titleMatch[1].trim();
     }
 
-    // Try from artist title element
     const titleElement = document.querySelector(
       '[data-testid="adaptiveEntityTitle"], [data-testid="entity-title"]'
     );
@@ -321,19 +281,16 @@
   function extractAlbumInfo() {
     const info = { title: null, artist: null, year: null };
 
-    // Get title
     const titleElement = document.querySelector('[data-testid="entityTitle"]');
     if (titleElement) {
       info.title = text(titleElement);
     }
 
-    // Get artist from creator link
     const artistLink = document.querySelector('[data-testid="creator-link"]');
     if (artistLink) {
       info.artist = text(artistLink);
     }
 
-    // Try to extract year from release date text
     const releaseText = document.body.textContent;
     const yearMatch = releaseText.match(/\b(19\d{2}|20\d{2})\b/);
     if (yearMatch) {
@@ -346,13 +303,11 @@
   function extractTrackInfo(row) {
     const info = { title: null, artist: null };
 
-    // Track title is usually in the first column
     const titleElement = row.querySelector('[dir="auto"]');
     if (titleElement) {
       info.title = text(titleElement);
     }
 
-    // Artist link for tracks with multiple artists
     const artistLink = row.querySelector('a[href*="/artist/"]');
     if (artistLink) {
       info.artist = text(artistLink);
@@ -362,25 +317,21 @@
   }
 
   function extractTextFromElement(element) {
-    // Try to find link with title
     const link = element.querySelector('a[href*="/album/"], a[href*="/track/"]');
     if (link) {
       const title = link.getAttribute("aria-label") || text(link);
       if (title) return title;
     }
 
-    // Fallback to any text
     return text(element);
   }
 
   function extractArtistFromCard(card) {
-    // Look for artist link
     const artistLink = card.querySelector('a[href*="/artist/"]');
     if (artistLink) {
       return text(artistLink);
     }
 
-    // Fallback: try to extract from subtitle
     const subtitle = card.querySelector('[data-encore-id="listRowSubtitle"], .secondary-text');
     if (subtitle) {
       return text(subtitle);
@@ -401,95 +352,14 @@
     const key = keyFor(artist, title);
     const match = cache.index[key];
 
-    if (match && isTypeMatch(match, type, info.year)) {
+    if (match && isMatchable(match, type)) {
+      if (info.year && match.releaseDate && !match.releaseDate.includes(info.year)) {
+        return null;
+      }
       return match;
     }
 
     return null;
-  }
-
-  function isTypeMatch(match, expectedType, yearHint) {
-    const matchType = (match.mediaType || "").toLowerCase();
-
-    // Type matching
-    if (expectedType === "release" && !["release", "album"].includes(matchType)) {
-      return false;
-    }
-    if (expectedType === "song" && matchType !== "song") {
-      return false;
-    }
-
-    // Year matching (if provided)
-    if (yearHint && match.releaseDate) {
-      if (!match.releaseDate.includes(yearHint)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  function buildBadge(match, compact = false) {
-    const el = document.createElement(match.url ? "a" : "span");
-    el.className = "rym-ext-badge rym-ext-badge-spotify";
-    if (compact) {
-      el.classList.add("rym-ext-badge-compact");
-    }
-
-    const rating = match.ratingValue || "?";
-    el.textContent = `RYM ${rating}`;
-    el.title = buildTooltip(match);
-
-    const ratingNum = parseFloat(rating);
-    if (!isNaN(ratingNum)) {
-      const color = getRatingColor(ratingNum);
-      el.style.background = color.bg;
-      el.style.color = color.fg;
-    }
-
-    if (match.url) {
-      el.href = match.url;
-      el.target = "_blank";
-      el.rel = "noopener noreferrer";
-    }
-
-    return el;
-  }
-
-  function getRatingColor(rating) {
-    const clamped = Math.max(0, Math.min(5, rating));
-    const normalized = clamped / 5; // 0-1
-    const hue = 20 + normalized * 110; // red-ish to green-ish
-    const saturation = 75;
-    const lightness = 48 - normalized * 8;
-    return {
-      bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-      fg: "#ffffff",
-    };
-  }
-
-  function buildTooltip(match) {
-    const bits = [];
-    const title = match.name || "Unknown title";
-    const artist = match.artist || "";
-    bits.push(artist ? `${title} — ${artist}` : title);
-    if (match.ratingValue) {
-      bits.push(`Rating: ${match.ratingValue}${match.maxRating ? "/" + match.maxRating : ""}`);
-    }
-    if (match.ratingCount) bits.push(`Ratings: ${match.ratingCount}`);
-    if (match.reviewCount) bits.push(`Reviews: ${match.reviewCount}`);
-    if (match.releaseDate) bits.push(`Year: ${match.releaseDate}`);
-    if (match.updatedAt) bits.push(`Cached: ${match.updatedAt}`);
-    return bits.join(" · ");
-  }
-
-  function summarizeCache(currentCache) {
-    if (!currentCache?.index) return null;
-    return Object.values(currentCache.index).reduce((acc, item) => {
-      const type = item.mediaType || "unknown";
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {});
   }
 
   function injectStyles() {
@@ -535,10 +405,5 @@
       }
     `;
     document.head.appendChild(style);
-  }
-
-  function text(node) {
-    if (!node) return "";
-    return (node.textContent || "").replace(/\s+/g, " ").trim();
   }
 })();
