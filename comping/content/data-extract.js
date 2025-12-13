@@ -522,9 +522,7 @@
 
   function extractGamePage() {
     const record = baseRecord("game", location.href);
-    record.name = text(
-      document.querySelector(".page_object_main_info h1, .page_object_main_info_hdr")
-    );
+    record.name = text(document.querySelector(".page_object_header_title, #page_object_header h1"));
     record.ratingValue = text(document.querySelector(".rating_number_game"));
     record.maxRating = extractMaxRating(
       ".rating_card_max_rating [itemprop=bestRating]",

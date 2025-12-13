@@ -62,14 +62,32 @@
   }
 
   function runScan() {
+    log("Running scan...");
     annotateAnchors();
     annotatePageTitle();
+    log("Scan complete");
   }
 
   function annotateAnchors() {
-    const anchors = document.querySelectorAll("a[href*='humblebundle.com/store/']");
-    anchors.forEach((anchor) => {
+    // Bundle page items (href="#")
+    const bundleItems = document.querySelectorAll("a.js-item-details.item-details");
+    log(`Found ${bundleItems.length} bundle items`);
+
+    bundleItems.forEach((anchor, idx) => {
       const meta = extractMeta(anchor);
+      if (idx < 5) log(`Bundle item ${idx}: title="${meta.title}"`);
+      if (!meta.title) return;
+      const target = anchor.querySelector(".item-title") || anchor;
+      attachBadge(target, meta.title);
+    });
+
+    // Store page items
+    const storeAnchors = document.querySelectorAll("a[href*='humblebundle.com/store/']");
+    log(`Found ${storeAnchors.length} store items`);
+
+    storeAnchors.forEach((anchor, idx) => {
+      const meta = extractMeta(anchor);
+      if (idx < 5) log(`Store item ${idx}: title="${meta.title}"`);
       if (!meta.title) return;
       attachBadge(anchor, meta.title);
     });
@@ -104,14 +122,21 @@
       anchor.dataset?.humanName ||
       anchor.getAttribute("data-human-name") ||
       anchor.getAttribute("aria-label");
+
+    // Try to get title from .item-title span (for bundle pages)
+    const itemTitleSpan = anchor.querySelector(".item-title");
+    const spanTitle = itemTitleSpan ? collapse(itemTitleSpan.textContent || "") : "";
+
     const textTitle = collapse(anchor.textContent || "");
-    const title = collapse(attrTitle || textTitle);
+    const title = collapse(attrTitle || spanTitle || textTitle);
     return { title };
   }
 
   function attachBadge(target, title) {
     if (!target || !title) return;
     const keys = alternativeKeys("", title);
+    log(`Looking up "${title}" with keys:`, keys);
+
     const existing = target.querySelector?.(".gw-ext-badge");
     if (existing?.dataset?.rymKey && keys.includes(existing.dataset.rymKey)) {
       const match = cache.index[existing.dataset.rymKey];
@@ -128,8 +153,15 @@
     if (existing) existing.remove();
 
     const match = keys.map((key) => cache.index?.[key]).find(Boolean);
-    if (!match) return;
-    if (!isMatchable(match, "game")) return;
+    if (!match) {
+      log(`✗ No match for "${title}"`);
+      return;
+    }
+
+    if (!isMatchable(match, "game")) {
+      log(`✗ Match found but not a game: "${title}" (type: ${match.mediaType})`);
+      return;
+    }
 
     const badge = buildBadge(match, {
       className: "rym-ext-badge gw-ext-badge",
