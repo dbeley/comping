@@ -2,7 +2,8 @@
 
 **Comping** is a browser extension that displays ratings from RateYourMusic and Glitchwave as overlay badges on other websites like Spotify, YouTube, and more.
 
-⚠️ You have to browse RateYourMusic and Glitchwave pages first to cache the data.
+⚠️ This is an unofficial extension. Use may violate RateYourMusic's Terms of Service. Use at
+your own risk.
 
 ## Platform Support
 
