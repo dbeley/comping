@@ -253,12 +253,12 @@
       }
 
       const badge = buildBadge(match, true);
-      const titleCell = row.querySelector(
-        '[data-testid="tracklist-row"] > div:first-child, .trackListRowGrid > div:first-child'
-      );
-      if (titleCell) {
-        titleCell.style.position = "relative";
-        titleCell.appendChild(badge);
+
+      // Find the actual track title element (usually has dir="auto" attribute)
+      const titleElement = row.querySelector('[dir="auto"]');
+      if (titleElement) {
+        // Insert badge before the title text
+        titleElement.insertBefore(badge, titleElement.firstChild);
         if (logIndex < 3) {
           log(`✓ BADGE ATTACHED: "${trackInfo.title}" → ${match.ratingValue || "?"}`);
         }
@@ -509,25 +509,29 @@
         left: 6px;
         padding: 4px 8px;
         border-radius: 12px;
-        background: rgba(35, 35, 35, 0.85);
         color: #fff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
         z-index: 12;
         text-decoration: none;
         cursor: pointer;
         transition: transform 120ms ease, box-shadow 120ms ease;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
       }
       .rym-ext-badge-spotify:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
       }
       .rym-ext-badge-spotify.rym-ext-badge-compact {
         position: static;
         display: inline-block;
-        margin-left: 8px;
+        margin-right: 6px;
+        margin-left: 0;
         font-size: 10px;
         padding: 2px 6px;
         vertical-align: middle;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
       }
     `;
     document.head.appendChild(style);
