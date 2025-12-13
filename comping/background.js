@@ -10,53 +10,9 @@
   const api = typeof self !== "undefined" ? self.__RYM_EXT__ || {} : {};
   const normalize = api.normalize || ((text) => (text || "").toLowerCase().trim());
   const keyFor = api.keyFor || ((artist, title) => `${normalize(artist)}|${normalize(title)}`);
-  const FALLBACK_SOURCES = {
-    releases: {
-      id: "releases",
-      label: "RYM releases",
-      storageKey: "rateyourmusic-csv::records",
-      mediaType: "release",
-      hosts: [],
-    },
-    songs: {
-      id: "songs",
-      label: "RYM tracks",
-      storageKey: "rateyourmusic-song-csv::records",
-      mediaType: "song",
-      hosts: [],
-    },
-    films: {
-      id: "films",
-      label: "RYM movies",
-      storageKey: "rateyourmusic-film-csv::records",
-      mediaType: "film",
-      hosts: [],
-    },
-    games: {
-      id: "games",
-      label: "Glitchwave games",
-      storageKey: "glitchwave-csv::records",
-      mediaType: "game",
-      hosts: [],
-    },
-  };
-  const FALLBACK_TARGETS = {
-    spotify: { id: "spotify", label: "Spotify", mediaType: "music" },
-    youtube: { id: "youtube", label: "YouTube", mediaType: "music" },
-    navidrome: { id: "navidrome", label: "Navidrome", mediaType: "music" },
-    bandcamp: { id: "bandcamp", label: "Bandcamp", mediaType: "music" },
-    lastfm: { id: "lastfm", label: "Last.fm", mediaType: "music" },
-    deezer: { id: "deezer", label: "Deezer", mediaType: "music" },
-    steam: { id: "steam", label: "Steam", mediaType: "game" },
-    jellyfin: { id: "jellyfin", label: "Jellyfin", mediaType: "film" },
-    humble: { id: "humble", label: "Humble Bundle", mediaType: "game" },
-  };
-  const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || {
-    sources: Object.fromEntries(
-      Object.values(FALLBACK_SOURCES).map((src) => [src.mediaType, true])
-    ),
-    overlays: Object.fromEntries(Object.values(FALLBACK_TARGETS).map((t) => [t.id, true])),
-  };
+  const SOURCES = api.SOURCES || {};
+  const TARGETS = api.TARGETS || {};
+  const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
 
   const CACHE_KEY = "rym-cache-v2";
   const SETTINGS_KEY = "rym-settings";
