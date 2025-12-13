@@ -56,5 +56,5 @@ jobs:
           files: |
             ./build/comping-${{ steps.version.outputs.VERSION }}.xpi
             ./build/comping-${{ steps.version.outputs.VERSION }}-chrome.zip
-          draft: true
+          draft: false
           prerelease: false
