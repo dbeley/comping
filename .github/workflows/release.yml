@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify version matches manifest
+        run: |
+          MANIFEST_VERSION=$(grep -oP '"version":\s*"\K[^"]+' comping/manifest.json)
+          if [ "$MANIFEST_VERSION" != "${{ steps.version.outputs.VERSION }}" ]; then
+            echo "Error: Tag version (${{ steps.version.outputs.VERSION }}) doesn't match manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+
+      - name: Build extension
+        run: |
+          chmod +x build-extension.sh
+          ./build-extension.sh
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Comping v${{ steps.version.outputs.VERSION }}
+
+            ### Installation
+
+            **Firefox:**
+            - Download `comping-${{ steps.version.outputs.VERSION }}.xpi`
+            - Navigate to `about:addons`, click the gear icon and select "Install Add-on From File..."
+
+            **Chrome:**
+            - Download `comping-${{ steps.version.outputs.VERSION }}-chrome.zip`
+            - Extract and load as unpacked extension in developer mode
+
+            ### What's Changed
+            <!-- Add your changelog here -->
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.version.outputs.VERSION }}
+          files: |
+            ./build/comping-${{ steps.version.outputs.VERSION }}.xpi
+            ./build/comping-${{ steps.version.outputs.VERSION }}-chrome.zip
+          draft: false
+          prerelease: false
