@@ -9,6 +9,7 @@ npm-debug.log*
 build/
 *.xpi
 *.zip
+.amo-upload-uuid
 
 # direnv
 .direnv/

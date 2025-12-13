@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Build script for bebopa RYM Cache Overlay extension
+# Build script for Comping browser extension
 # Creates installable packages for Firefox (.xpi) and Chrome (.zip)
 
 set -e
@@ -18,11 +18,11 @@ if ! command -v zip &> /dev/null; then
     exit 1
 fi
 
-EXTENSION_DIR="rym-overlay-extension"
+EXTENSION_DIR="comping"
 BUILD_DIR="build"
 VERSION=$(grep -oP '"version":\s*"\K[^"]+' "$EXTENSION_DIR/manifest.json")
 
-echo "Building RYM Cache Overlay v$VERSION..."
+echo "Building Comping v$VERSION..."
 
 # Create build directory if it doesn't exist
 mkdir -p "$BUILD_DIR"
@@ -33,7 +33,7 @@ rm -f "$BUILD_DIR"/*.xpi "$BUILD_DIR"/*.zip
 # Firefox .xpi (signed package)
 echo "Creating Firefox .xpi package..."
 cd "$EXTENSION_DIR"
-zip -r -FS "../$BUILD_DIR/rym-cache-overlay-$VERSION.xpi" \
+zip -r -FS "../$BUILD_DIR/comping-$VERSION.xpi" \
   manifest.json \
   background.js \
   popup.html \
@@ -46,7 +46,7 @@ cd ..
 # Chrome .zip (for manual installation in developer mode)
 echo "Creating Chrome .zip package..."
 cd "$EXTENSION_DIR"
-zip -r -FS "../$BUILD_DIR/rym-cache-overlay-$VERSION-chrome.zip" \
+zip -r -FS "../$BUILD_DIR/comping-$VERSION-chrome.zip" \
   manifest.json \
   background.js \
   popup.html \
@@ -58,8 +58,8 @@ cd ..
 
 echo ""
 echo "Build complete!"
-echo "  Firefox package: $BUILD_DIR/rym-cache-overlay-$VERSION.xpi"
-echo "  Chrome package:  $BUILD_DIR/rym-cache-overlay-$VERSION-chrome.zip"
+echo "  Firefox package: $BUILD_DIR/comping-$VERSION.xpi"
+echo "  Chrome package:  $BUILD_DIR/comping-$VERSION-chrome.zip"
 echo ""
 echo "Installation instructions:"
 echo "  Firefox: See INSTALLATION.md for .xpi installation"

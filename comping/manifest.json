@@ -1,11 +1,11 @@
 {
   "manifest_version": 2,
-  "name": "RYM Cache Overlay",
+  "name": "Comping",
   "version": "0.1.0",
-  "description": "Display cached RateYourMusic ratings on Spotify, YouTube, and other sites using the CSV tracker data already stored in your browser.",
+  "description": "An add-on to accompany your browsing by adding notes on works cached from Sonemic websites (music, movies, video games).",
   "browser_specific_settings": {
     "gecko": {
-      "id": "rym-cache-overlay@example.com",
+      "id": "comping@bebopa.app",
       "strict_min_version": "91.0"
     }
   },
@@ -28,7 +28,7 @@
     "persistent": false
   },
   "browser_action": {
-    "default_title": "RYM Overlay",
+    "default_title": "Comping",
     "default_popup": "popup.html"
   },
   "content_scripts": [
