@@ -41,6 +41,7 @@
     deezer: { id: "deezer", label: "Deezer", mediaType: "music" },
     steam: { id: "steam", label: "Steam", mediaType: "game" },
     jellyfin: { id: "jellyfin", label: "Jellyfin", mediaType: "film" },
+    humble: { id: "humble", label: "Humble Bundle", mediaType: "game" },
   };
 
   const DEFAULT_SETTINGS = {

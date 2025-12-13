@@ -38,8 +38,6 @@
         "http://rateyourmusic.com/*",
         "https://www.rateyourmusic.com/*",
         "http://www.rateyourmusic.com/*",
-        "https://rym.com/*",
-        "http://rym.com/*",
         "https://glitchwave.com/*",
         "http://glitchwave.com/*",
         "https://www.glitchwave.com/*",
@@ -55,8 +53,6 @@
     },
     {
       "matches": [
-        "http://localhost/*",
-        "http://127.0.0.1/*",
         "http://navidrome.docker-era.home/*",
         "http://*/navidrome/*",
         "https://*/navidrome/*"
@@ -70,7 +66,11 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["http://*/web/*", "https://*/web/*"],
+      "matches": [
+        "http://jellyfin.docker-era.home/*",
+        "http://*/jellyfin/*",
+        "https://*/jellyfin/*"
+      ],
       "js": ["shared/normalize.js", "shared/config.js", "content/jellyfin-overlay.js"],
       "run_at": "document_idle"
     },
@@ -88,6 +88,16 @@
         "https://music.youtube.com/*"
       ],
       "js": ["shared/normalize.js", "shared/config.js", "content/youtube-overlay.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.humblebundle.com/*",
+        "http://www.humblebundle.com/*",
+        "https://humblebundle.com/*",
+        "http://humblebundle.com/*"
+      ],
+      "js": ["shared/normalize.js", "shared/config.js", "content/humble-overlay.js"],
       "run_at": "document_idle"
     },
     {
