@@ -15,6 +15,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Extract version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -32,6 +40,21 @@ jobs:
           chmod +x build-extension.sh
           ./build-extension.sh
 
+      - name: Sign Firefox XPI
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+        run: |
+          npx web-ext sign \
+            --source-dir=comping \
+            --channel=unlisted \
+            --artifacts-dir=build/signed
+
+          # Replace unsigned XPI with signed version
+          SIGNED_XPI=$(ls build/signed/*.xpi)
+          mv "$SIGNED_XPI" "build/comping-${{ steps.version.outputs.VERSION }}.xpi"
+          rm -rf build/signed
+
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
@@ -42,8 +65,9 @@ jobs:
             ### Installation
 
             **Firefox:**
-            - Download `comping-${{ steps.version.outputs.VERSION }}.xpi`
-            - Navigate to `about:addons`, click the gear icon and select "Install Add-on From File..."
+            - Download `comping-${{ steps.version.outputs.VERSION }}.xpi` (signed by Mozilla)
+            - Open the downloaded file with Firefox, or drag and drop it onto Firefox
+            - Click "Add" when prompted
 
             **Chrome:**
             - Download `comping-${{ steps.version.outputs.VERSION }}-chrome.zip`
