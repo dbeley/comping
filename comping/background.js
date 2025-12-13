@@ -12,7 +12,20 @@
   const keyFor = api.keyFor || ((artist, title) => `${normalize(artist)}|${normalize(title)}`);
   const SOURCES = api.SOURCES || {};
   const TARGETS = api.TARGETS || {};
-  const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
+  const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || {
+    sources: { release: true, song: true, film: true, game: true },
+    overlays: {
+      spotify: true,
+      youtube: true,
+      navidrome: true,
+      bandcamp: true,
+      lastfm: true,
+      deezer: true,
+      steam: true,
+      jellyfin: true,
+      humble: true,
+    },
+  };
 
   const CACHE_KEY = "rym-cache-v2";
   const SETTINGS_KEY = "rym-settings";
@@ -69,8 +82,11 @@
 
   async function handleCacheUpdate(records, meta) {
     const settings = await loadSettings();
-    if (!settings.sources[meta.mediaType]) {
-      console.debug("[rym-overlay][bg] skip update because source disabled", meta.mediaType);
+    if (settings.sources[meta.mediaType] === false) {
+      console.debug("[rym-overlay][bg] skip update because source disabled", {
+        mediaType: meta.mediaType,
+        setting: settings.sources[meta.mediaType],
+      });
       return { ok: false, skipped: true };
     }
 
@@ -85,6 +101,11 @@
     };
     cache = next;
     await browser.storage.local.set({ [CACHE_KEY]: next });
+    console.debug("[rym-overlay][bg] cache updated successfully", {
+      mediaType: meta.mediaType,
+      count: normalizedRecords.length,
+      totalEntries: merged.length,
+    });
     return { ok: true, count: normalizedRecords.length };
   }
 
