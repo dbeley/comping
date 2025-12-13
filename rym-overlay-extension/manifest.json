@@ -70,6 +70,16 @@
       "run_at": "document_idle"
     },
     {
+      "matches": [
+        "https://www.humblebundle.com/*",
+        "http://www.humblebundle.com/*",
+        "https://humblebundle.com/*",
+        "http://humblebundle.com/*"
+      ],
+      "js": ["shared/normalize.js", "shared/config.js", "content/humble-overlay.js"],
+      "run_at": "document_idle"
+    },
+    {
       "matches": ["http://*/web/*", "https://*/web/*"],
       "js": ["shared/normalize.js", "shared/config.js", "content/jellyfin-overlay.js"],
       "run_at": "document_idle"
@@ -88,6 +98,11 @@
         "https://music.youtube.com/*"
       ],
       "js": ["shared/normalize.js", "shared/config.js", "content/youtube-overlay.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://open.spotify.com/*", "http://open.spotify.com/*"],
+      "js": ["shared/normalize.js", "shared/config.js", "content/spotify-overlay.js"],
       "run_at": "document_idle"
     }
   ],
