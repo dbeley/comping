@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAll();
   document.getElementById("refresh").addEventListener("click", renderAll);
   document.getElementById("export").addEventListener("click", exportCsv);
+  initCollapsibleSections();
 });
 
 async function renderAll() {
@@ -158,4 +159,27 @@ function showMessage(text, isError = false) {
 
 function clearMessage() {
   showMessage("");
+}
+
+function initCollapsibleSections() {
+  const sections = document.querySelectorAll(".section");
+  sections.forEach((section) => {
+    const header = section.querySelector("h2");
+    const sectionName = section.dataset.section;
+
+    // Restore collapsed state from localStorage
+    const isCollapsed = localStorage.getItem(`section-${sectionName}-collapsed`) === "true";
+    if (isCollapsed) {
+      section.classList.add("collapsed");
+    }
+
+    header.addEventListener("click", () => {
+      section.classList.toggle("collapsed");
+      // Save state to localStorage
+      localStorage.setItem(
+        `section-${sectionName}-collapsed`,
+        section.classList.contains("collapsed")
+      );
+    });
+  });
 }

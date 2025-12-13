@@ -28,6 +28,32 @@
       .section h2 {
         margin: 0 0 6px 0;
         font-size: 13px;
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .section h2:hover {
+        color: #333;
+      }
+      .section h2::before {
+        content: '▼';
+        font-size: 10px;
+        transition: transform 0.2s;
+      }
+      .section.collapsed h2::before {
+        transform: rotate(-90deg);
+      }
+      .section-content {
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        max-height: 500px;
+        opacity: 1;
+      }
+      .section.collapsed .section-content {
+        max-height: 0;
+        opacity: 0;
       }
       .toggle {
         display: flex;
@@ -56,13 +82,17 @@
   <body>
     <h1>Comping</h1>
     <div id="status">Loading…</div>
-    <div class="section">
+    <div class="section" data-section="sources">
       <h2>Data sources</h2>
-      <div id="sources"></div>
+      <div class="section-content">
+        <div id="sources"></div>
+      </div>
     </div>
-    <div class="section">
+    <div class="section" data-section="overlays">
       <h2>Overlays</h2>
-      <div id="overlays"></div>
+      <div class="section-content">
+        <div id="overlays"></div>
+      </div>
     </div>
     <div class="actions">
       <button id="refresh">Refresh cache</button>

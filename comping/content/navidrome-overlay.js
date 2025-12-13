@@ -1,11 +1,9 @@
 (function () {
-  let DEBUG = true; // Set to false to disable debug logging
-  const log = (...args) => DEBUG && console.log("[rym-navidrome]", ...args);
-  const warn = (...args) => console.warn("[rym-navidrome]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
+  const createDebugger = api.createDebugger;
   const MATCHABLE_TYPES = ["release", "song"];
+
   let cache = null;
   let typeIndex = null;
   let settings = null;
@@ -14,8 +12,7 @@
   let scanScheduled = false;
   let needsFullScan = false;
 
-  // Expose debug helpers to window for manual testing
-  window.__RYM_NAVIDROME_DEBUG__ = {
+  const debug = createDebugger("rym-navidrome", {
     getCache: () => cache,
     getCacheStats: () => {
       if (!cache?.index) return null;
@@ -27,14 +24,14 @@
     },
     testLookup: (artist, title) => {
       const key = keyFor(artist, title);
-      log(`Test lookup - Key: "${key}"`);
+      debug.log(`Test lookup - Key: "${key}"`);
       const match = cache?.index[key];
       if (match) {
-        log("Match found:", match);
+        debug.log("Match found:", match);
         return match;
       } else {
-        log("No match found");
-        log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
+        debug.log("No match found");
+        debug.log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
         return null;
       }
     },
@@ -50,19 +47,16 @@
           results.push({ key, ...value });
         }
       }
-      log(`Found ${results.length} matches for "${searchTerm}"`);
+      debug.log(`Found ${results.length} matches for "${searchTerm}"`);
       return results;
     },
     rescan: () => runScan(),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[rym-navidrome] Debug disabled");
-    },
-  };
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  // Expose debug helpers to window for manual testing
+  window.__RYM_NAVIDROME_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 

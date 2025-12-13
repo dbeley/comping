@@ -1,11 +1,9 @@
 (function () {
-  let DEBUG = true; // Set to false to disable debug logging
-  const log = (...args) => DEBUG && console.log("[glitchwave-steam]", ...args);
-  const warn = (...args) => console.warn("[glitchwave-steam]", ...args);
-
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
   const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
+  const createDebugger = api.createDebugger;
+
   let cache = null;
   let settings = null;
   let styleInjected = false;
@@ -13,8 +11,7 @@
   let scanScheduled = false;
   let needsFullScan = false;
 
-  // Expose debug helpers to window for manual testing
-  window.__GLITCHWAVE_STEAM_DEBUG__ = {
+  const debug = createDebugger("glitchwave-steam", {
     getCache: () => cache,
     getCacheStats: () => {
       if (!cache?.index) return null;
@@ -26,14 +23,14 @@
     },
     testLookup: (title) => {
       const key = keyFor("", title); // Games typically don't have an "artist"
-      log(`Test lookup - Key: "${key}"`);
+      debug.log(`Test lookup - Key: "${key}"`);
       const match = cache?.index[key];
       if (match) {
-        log("Match found:", match);
+        debug.log("Match found:", match);
         return match;
       } else {
-        log("No match found");
-        log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
+        debug.log("No match found");
+        debug.log("Sample cache keys:", Object.keys(cache?.index || {}).slice(0, 10));
         return null;
       }
     },
@@ -48,19 +45,16 @@
           results.push({ key, ...value });
         }
       }
-      log(`Found ${results.length} matches for "${searchTerm}"`);
+      debug.log(`Found ${results.length} matches for "${searchTerm}"`);
       return results;
     },
     rescan: () => runScan(),
-    enableDebug: () => {
-      DEBUG = true;
-      log("Debug enabled");
-    },
-    disableDebug: () => {
-      DEBUG = false;
-      console.log("[glitchwave-steam] Debug disabled");
-    },
-  };
+  });
+  const log = debug.log;
+  const warn = debug.warn;
+
+  // Expose debug helpers to window for manual testing
+  window.__GLITCHWAVE_STEAM_DEBUG__ = debug;
 
   init().catch((err) => warn("init failed", err));
 
