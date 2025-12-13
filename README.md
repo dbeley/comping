@@ -13,6 +13,8 @@
 - **Last.fm**: Artist pages, album listings, and track charts
 - **Navidrome** (Self-hosted): Album cards, track listings, artist pages
 
+![Comping on Navidrome](docs/navidrome-album-grid.png)
+
 ### 🎬 Movies
 
 - **Jellyfin** (Self-hosted): Movies tiles
