@@ -22,6 +22,7 @@
 ### 🎮 Video Games
 
 - **Steam**: Game store pages
+- **Humble Bundle**: Bundle pages
 
 ## ⚡ Features
 
