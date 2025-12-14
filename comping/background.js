@@ -37,8 +37,11 @@
 
   browser.runtime.onInstalled.addListener(seedDefaults);
 
-  browser.runtime.onMessage.addListener((message) => {
-    if (!message || !message.type) return;
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || !message.type) {
+      sendResponse(undefined);
+      return;
+    }
 
     if (message.type === "rym-cache-update") {
       const source = message.source || "unknown";
@@ -52,34 +55,76 @@
             ? Object.keys(message.records).length
             : 0,
       });
-      return handleCacheUpdate(message.records, { source, mediaType });
+      handleCacheUpdate(message.records, { source, mediaType })
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] cache update failed", err);
+          sendResponse({ ok: false, error: err.message });
+        });
+      return true; // Indicates async response
     }
 
     if (message.type === "rym-cache-request") {
-      return loadCache();
+      loadCache()
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] cache request failed", err);
+          sendResponse(null);
+        });
+      return true;
     }
 
     if (message.type === "rym-lookup") {
-      return handleLookup(message.keys || []);
+      handleLookup(message.keys || [])
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] lookup failed", err);
+          sendResponse({ matches: {}, lastSync: null });
+        });
+      return true;
     }
 
     if (message.type === "rym-settings-get") {
-      return loadSettings();
+      loadSettings()
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] settings get failed", err);
+          sendResponse(DEFAULT_SETTINGS);
+        });
+      return true;
     }
 
     if (message.type === "rym-settings-set") {
-      return saveSettings(message.settings || {});
+      saveSettings(message.settings || {})
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] settings set failed", err);
+          sendResponse(null);
+        });
+      return true;
     }
 
     if (message.type === "rym-cache-export") {
-      return handleExport();
+      handleExport()
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] export failed", err);
+          sendResponse({ csv: "", count: 0, lastSync: null });
+        });
+      return true;
     }
+
+    sendResponse(undefined);
   });
 
   async function seedDefaults() {
-    const stored = await browser.storage.local.get(SETTINGS_KEY);
+    const stored = await new Promise((resolve) => {
+      browser.storage.local.get(SETTINGS_KEY, resolve);
+    });
     if (!stored[SETTINGS_KEY]) {
-      await browser.storage.local.set({ [SETTINGS_KEY]: DEFAULT_SETTINGS });
+      await new Promise((resolve) => {
+        browser.storage.local.set({ [SETTINGS_KEY]: DEFAULT_SETTINGS }, resolve);
+      });
     }
   }
 
@@ -103,7 +148,9 @@
       source: meta.source,
     };
     cache = next;
-    await browser.storage.local.set({ [CACHE_KEY]: next });
+    await new Promise((resolve) => {
+      browser.storage.local.set({ [CACHE_KEY]: next }, resolve);
+    });
     console.debug("[rym-overlay][bg] cache updated successfully", {
       mediaType: meta.mediaType,
       count: normalizedRecords.length,
@@ -137,7 +184,9 @@
 
   async function loadSettings() {
     if (settingsCache) return settingsCache;
-    const stored = await browser.storage.local.get(SETTINGS_KEY);
+    const stored = await new Promise((resolve) => {
+      browser.storage.local.get(SETTINGS_KEY, resolve);
+    });
     settingsCache = { ...DEFAULT_SETTINGS, ...(stored[SETTINGS_KEY] || {}) };
     return settingsCache;
   }
@@ -149,13 +198,17 @@
       overlays: { ...current.overlays, ...(next.overlays || {}) },
     };
     settingsCache = merged;
-    await browser.storage.local.set({ [SETTINGS_KEY]: merged });
+    await new Promise((resolve) => {
+      browser.storage.local.set({ [SETTINGS_KEY]: merged }, resolve);
+    });
     return merged;
   }
 
   async function loadCache() {
     if (cache) return cache;
-    const stored = await browser.storage.local.get(CACHE_KEY);
+    const stored = await new Promise((resolve) => {
+      browser.storage.local.get(CACHE_KEY, resolve);
+    });
     cache = stored[CACHE_KEY] || null;
     return cache;
   }

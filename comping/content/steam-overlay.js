@@ -6,6 +6,7 @@
   const keyFor = api.keyFor || (() => "");
   const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
   const createDebugger = api.createDebugger;
+  const sendMessage = api.sendMessage || ((msg) => browser.runtime.sendMessage(msg));
 
   let cache = null;
   let settings = null;
@@ -98,7 +99,7 @@
 
   async function fetchSettings() {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
+      return await sendMessage({ type: "rym-settings-get" });
     } catch {
       return { overlays: { steam: true } };
     }
@@ -106,7 +107,7 @@
 
   async function fetchCache() {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
+      return await sendMessage({ type: "rym-cache-request" });
     } catch {
       return null;
     }

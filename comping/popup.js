@@ -1,6 +1,19 @@
 // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
 const browser = globalThis.browser || globalThis.chrome;
 
+// Helper to ensure sendMessage always returns a Promise (Chrome MV2 uses callbacks)
+function sendMessage(message) {
+  return new Promise((resolve, reject) => {
+    browser.runtime.sendMessage(message, (response) => {
+      if (browser.runtime.lastError) {
+        reject(browser.runtime.lastError);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
 const api = window.__RYM_EXT__ || {};
 const SOURCES = api.SOURCES || {};
 const TARGETS = api.TARGETS || {};
@@ -20,8 +33,8 @@ async function renderAll() {
   clearMessage();
   try {
     const [loadedSettings, cache] = await Promise.all([
-      browser.runtime.sendMessage({ type: "rym-settings-get" }).catch(() => DEFAULT_SETTINGS),
-      browser.runtime.sendMessage({ type: "rym-cache-request" }).catch(() => null),
+      sendMessage({ type: "rym-settings-get" }).catch(() => DEFAULT_SETTINGS),
+      sendMessage({ type: "rym-cache-request" }).catch(() => null),
     ]);
     settings = { ...DEFAULT_SETTINGS, ...loadedSettings };
     renderStatus(cache);
@@ -112,7 +125,7 @@ function buildToggleRow(label, checked, onChange) {
 async function updateSettings(partial) {
   clearMessage();
   try {
-    settings = await browser.runtime.sendMessage({
+    settings = await sendMessage({
       type: "rym-settings-set",
       settings: partial,
     });
@@ -125,7 +138,7 @@ async function updateSettings(partial) {
 async function exportCsv() {
   clearMessage();
   try {
-    const result = await browser.runtime.sendMessage({ type: "rym-cache-export" });
+    const result = await sendMessage({ type: "rym-cache-export" });
     if (!result?.csv) {
       showMessage("Nothing to export yet.");
       return;

@@ -5,6 +5,7 @@
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
   const createDebugger = api.createDebugger;
+  const sendMessage = api.sendMessage || ((msg) => browser.runtime.sendMessage(msg));
   const MATCHABLE_TYPES = ["release", "song"];
 
   let cache = null;
@@ -103,7 +104,7 @@
 
   async function fetchSettings() {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-settings-get" });
+      return await sendMessage({ type: "rym-settings-get" });
     } catch {
       return { overlays: { navidrome: true } };
     }
@@ -111,7 +112,7 @@
 
   async function fetchCache() {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
+      return await sendMessage({ type: "rym-cache-request" });
     } catch {
       return null;
     }

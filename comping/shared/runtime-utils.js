@@ -5,9 +5,22 @@
   const api = (global.__RYM_EXT__ = global.__RYM_EXT__ || {});
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
 
+  // Helper to ensure sendMessage always returns a Promise (Chrome MV2 uses callbacks)
+  function sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      browser.runtime.sendMessage(message, (response) => {
+        if (browser.runtime.lastError) {
+          reject(browser.runtime.lastError);
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
   async function fetchSettings(defaults = DEFAULT_SETTINGS) {
     try {
-      const settings = await browser.runtime.sendMessage({ type: "rym-settings-get" });
+      const settings = await sendMessage({ type: "rym-settings-get" });
       return { ...defaults, ...settings };
     } catch (err) {
       console.warn("[runtime-utils] failed to fetch settings, using defaults", err);
@@ -17,7 +30,7 @@
 
   async function fetchCache() {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-cache-request" });
+      return await sendMessage({ type: "rym-cache-request" });
     } catch (err) {
       console.warn("[runtime-utils] failed to fetch cache", err);
       return null;
@@ -26,7 +39,7 @@
 
   async function lookupKeys(keys) {
     try {
-      return await browser.runtime.sendMessage({ type: "rym-lookup", keys });
+      return await sendMessage({ type: "rym-lookup", keys });
     } catch (err) {
       console.warn("[runtime-utils] failed to lookup keys", err);
       return { matches: {}, lastSync: null };
@@ -42,6 +55,7 @@
     }, {});
   }
 
+  api.sendMessage = sendMessage;
   api.fetchSettings = fetchSettings;
   api.fetchCache = fetchCache;
   api.lookupKeys = lookupKeys;

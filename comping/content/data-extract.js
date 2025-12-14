@@ -1,9 +1,7 @@
 (function () {
-  // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
-  const browser = globalThis.browser || globalThis.chrome;
-
   const api = window.__RYM_EXT__ || {};
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || { sources: {}, overlays: {} };
+  const sendMessage = api.sendMessage;
 
   let chartObserver = null;
   let chartRefreshTimer = null;
@@ -23,7 +21,7 @@
 
   async function fetchSettings() {
     try {
-      const settings = await browser.runtime.sendMessage({ type: "rym-settings-get" });
+      const settings = await sendMessage({ type: "rym-settings-get" });
       return { ...DEFAULT_SETTINGS, ...settings };
     } catch (err) {
       console.warn("[rym-overlay] failed to load settings, assuming defaults", err);
@@ -124,7 +122,7 @@
 
       for (const batch of batches) {
         if (!batch.records.length) continue;
-        await browser.runtime.sendMessage({
+        await sendMessage({
           type: "rym-cache-update",
           records: batch.records,
           source: batch.source,

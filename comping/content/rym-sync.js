@@ -1,8 +1,6 @@
 (function () {
-  // Cross-browser compatibility: Firefox uses 'browser', Chrome uses 'chrome'
-  const browser = globalThis.browser || globalThis.chrome;
-
   const api = window.__RYM_EXT__ || {};
+  const sendMessage = api.sendMessage;
   const delay = api.delay;
   const safeJsonParse = api.safeJsonParse;
 
@@ -27,7 +25,7 @@
       entries: Array.isArray(parsed) ? parsed.length : parsed ? Object.keys(parsed).length : 0,
       source: location.href,
     });
-    await browser.runtime.sendMessage({
+    await sendMessage({
       type: "rym-cache-update",
       records: parsed,
       source: location.href,
