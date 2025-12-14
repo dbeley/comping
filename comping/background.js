@@ -114,6 +114,16 @@
       return true;
     }
 
+    if (message.type === "rym-cache-clear") {
+      handleCacheClear()
+        .then(sendResponse)
+        .catch((err) => {
+          console.error("[rym-overlay][bg] cache clear failed", err);
+          sendResponse({ ok: false, error: err.message });
+        });
+      return true;
+    }
+
     sendResponse(undefined);
   });
 
@@ -180,6 +190,15 @@
       count: entries.length,
       lastSync: current?.lastSync || null,
     };
+  }
+
+  async function handleCacheClear() {
+    await new Promise((resolve) => {
+      browser.storage.local.remove(CACHE_KEY, resolve);
+    });
+    cache = null;
+    console.debug("[rym-overlay][bg] cache cleared successfully");
+    return { ok: true };
   }
 
   async function loadSettings() {

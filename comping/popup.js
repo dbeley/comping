@@ -24,6 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAll();
   document.getElementById("refresh").addEventListener("click", renderAll);
   document.getElementById("export").addEventListener("click", exportCsv);
+  document.getElementById("clear-cache").addEventListener("click", showClearConfirmation);
+  document.getElementById("confirm-clear").addEventListener("click", clearCache);
+  document.getElementById("cancel-clear").addEventListener("click", hideClearConfirmation);
   initCollapsibleSections();
 });
 
@@ -155,6 +158,30 @@ async function exportCsv() {
     showMessage(`Exported ${result.count || 0} rows.`);
   } catch (err) {
     showMessage(`Export failed: ${err.message || err}`, true);
+  }
+}
+
+function showClearConfirmation() {
+  document.getElementById("confirm-modal").style.display = "flex";
+}
+
+function hideClearConfirmation() {
+  document.getElementById("confirm-modal").style.display = "none";
+}
+
+async function clearCache() {
+  clearMessage();
+  hideClearConfirmation();
+  try {
+    const result = await sendMessage({ type: "rym-cache-clear" });
+    if (result?.ok) {
+      showMessage("Cache cleared successfully.");
+      renderAll();
+    } else {
+      showMessage("Failed to clear cache.", true);
+    }
+  } catch (err) {
+    showMessage(`Clear failed: ${err.message || err}`, true);
   }
 }
 
