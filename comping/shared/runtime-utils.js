@@ -37,15 +37,6 @@
     }
   }
 
-  async function lookupKeys(keys) {
-    try {
-      return await sendMessage({ type: "rym-lookup", keys });
-    } catch (err) {
-      console.warn("[runtime-utils] failed to lookup keys", err);
-      return { matches: {}, lastSync: null };
-    }
-  }
-
   function getCacheStats(cache) {
     if (!cache?.index) return null;
     return Object.values(cache.index).reduce((acc, item) => {
@@ -58,6 +49,5 @@
   api.sendMessage = sendMessage;
   api.fetchSettings = fetchSettings;
   api.fetchCache = fetchCache;
-  api.lookupKeys = lookupKeys;
   api.getCacheStats = getCacheStats;
 })(typeof window !== "undefined" ? window : this);

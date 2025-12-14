@@ -4,14 +4,13 @@
   const ColorSchemes = {
     LINEAR: "linear",
     PROGRESSIVE: "progressive",
-    ADVANCED: "advanced",
   };
 
   function getRatingColor(rating, scheme = ColorSchemes.LINEAR) {
     const clamped = Math.max(0, Math.min(5, rating));
 
     let normalized;
-    if (scheme === ColorSchemes.PROGRESSIVE || scheme === ColorSchemes.ADVANCED) {
+    if (scheme === ColorSchemes.PROGRESSIVE) {
       if (clamped < 3.0) {
         normalized = (clamped / 3.0) * 0.1;
       } else if (clamped < 4.0) {
@@ -24,18 +23,8 @@
     }
 
     const hue = scheme === ColorSchemes.LINEAR ? 20 + normalized * 110 : 120 * normalized;
-    const saturation =
-      scheme === ColorSchemes.ADVANCED
-        ? 70 + normalized * 15
-        : scheme === ColorSchemes.PROGRESSIVE
-          ? 65
-          : 75;
-    const lightness =
-      scheme === ColorSchemes.ADVANCED
-        ? 52 - normalized * 10
-        : scheme === ColorSchemes.PROGRESSIVE
-          ? 35
-          : 48 - normalized * 8;
+    const saturation = scheme === ColorSchemes.PROGRESSIVE ? 65 : 75;
+    const lightness = scheme === ColorSchemes.PROGRESSIVE ? 35 : 48 - normalized * 8;
 
     return {
       bg: `hsl(${hue}, ${saturation}%, ${lightness}%)`,

@@ -5,7 +5,6 @@
 - `comping/`: Browser extension source code. `background.js` manages cache/index, `content/` holds site-specific data extraction and overlay injectors, `shared/` contains cross-file utilities (normalization, config, badge/DOM/observer helpers), and `popup.*` renders the settings/export UI defined in `manifest.json`.
   - `content/data-extract.js`: Extracts rating data from RateYourMusic and Glitchwave pages
   - `content/data-sync.js`: Manages synchronization of extracted data to browser storage
-  - `content/rym-sync.js`: Legacy RYM sync handler
   - `content/*-overlay.js`: Platform-specific overlay injectors for Spotify, YouTube, Last.fm, Navidrome, Jellyfin, Steam, and Humble Bundle
   - `shared/`: Utilities including `normalize.js`, `config.js`, `badge-utils.js`, `dom-utils.js`, `observer-utils.js`, `match-utils.js`, `async-utils.js`, `runtime-utils.js`, and `debug-utils.js`
 - `rym-html-examples/`: Static RYM/Glitchwave pages for testing selectors and parsing without hitting live sites

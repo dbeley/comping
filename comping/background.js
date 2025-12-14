@@ -13,17 +13,13 @@
   const api = typeof self !== "undefined" ? self.__RYM_EXT__ || {} : {};
   const normalize = api.normalize || ((text) => (text || "").toLowerCase().trim());
   const keyFor = api.keyFor || ((artist, title) => `${normalize(artist)}|${normalize(title)}`);
-  const SOURCES = api.SOURCES || {};
-  const TARGETS = api.TARGETS || {};
   const DEFAULT_SETTINGS = api.DEFAULT_SETTINGS || {
     sources: { release: true, song: true, film: true, game: true },
     overlays: {
       spotify: true,
       youtube: true,
       navidrome: true,
-      bandcamp: true,
       lastfm: true,
-      deezer: true,
       steam: true,
       jellyfin: true,
       humble: true,
@@ -70,16 +66,6 @@
         .catch((err) => {
           console.error("[rym-overlay][bg] cache request failed", err);
           sendResponse(null);
-        });
-      return true;
-    }
-
-    if (message.type === "rym-lookup") {
-      handleLookup(message.keys || [])
-        .then(sendResponse)
-        .catch((err) => {
-          console.error("[rym-overlay][bg] lookup failed", err);
-          sendResponse({ matches: {}, lastSync: null });
         });
       return true;
     }
@@ -167,19 +153,6 @@
       totalEntries: merged.length,
     });
     return { ok: true, count: normalizedRecords.length };
-  }
-
-  async function handleLookup(keys) {
-    const current = await loadCache();
-    if (!current) return { matches: {}, lastSync: null };
-
-    const matches = {};
-    for (const key of keys) {
-      if (current.index[key]) {
-        matches[key] = current.index[key];
-      }
-    }
-    return { matches, lastSync: current.lastSync || null };
   }
 
   async function handleExport() {

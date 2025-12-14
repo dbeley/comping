@@ -26,7 +26,6 @@
     return match.releaseDate.includes(yearHint);
   }
 
-  api.MATCHABLE_TYPES = MATCHABLE_TYPES;
   api.isMatchable = isMatchable;
   api.isFilmMatch = isFilmMatch;
 })(typeof window !== "undefined" ? window : this);
