@@ -5,7 +5,6 @@
 
   let chartObserver = null;
   let chartRefreshTimer = null;
-  let chartHookTimer = null;
   let chartContainer = null;
   let chartContainerWatcher = null;
   let chartPollInterval = null;
@@ -182,7 +181,7 @@
     window.addEventListener("popstate", scheduleRefresh);
 
     hookChartNavigation(scheduleRefresh);
-    chartHookTimer = setTimeout(() => hookChartNavigation(scheduleRefresh), 500);
+    setTimeout(() => hookChartNavigation(scheduleRefresh), 500);
 
     if (!chartPollInterval) {
       chartPollInterval = setInterval(() => scheduleRefresh(), 2000);
