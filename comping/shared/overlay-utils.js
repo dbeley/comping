@@ -2,19 +2,31 @@
   const api = (global.__RYM_EXT__ = global.__RYM_EXT__ || {});
 
   /**
-   * Create a standardized overlay initializer
-   * @param {Object} config - Configuration object
-   * @param {string} config.name - Overlay name for logging
-   * @param {string} config.settingsKey - Key in settings.overlays
-   * @param {string} config.badgeClassName - CSS class for badges
-   * @param {Function} config.isMatch - Function to check if current page matches
-   * @param {Function} config.getStyles - Function returning CSS string
-   * @param {Function} config.runScan - Function to scan and annotate page
-   * @param {Object} [config.observerOptions] - Options for observer
-   * @param {boolean} [config.observerOptions.useBadgeAware=true] - Use badge-aware observer
-   * @param {number} [config.observerOptions.scanInterval] - Interval for periodic scans (ms)
-   * @param {number} [config.observerOptions.cooldown=0] - Cooldown between scans (ms)
-   * @returns {Object} Overlay instance with debug helpers
+   * Create a standardized overlay initializer to reduce duplication across overlay implementations.
+   *
+   * This function handles common tasks like:
+   * - Checking if the current page matches the overlay's target
+   * - Loading settings and cache
+   * - Injecting styles
+   * - Setting up mutation observers
+   * - Scheduling scans
+   *
+   * @param {Object} config - Configuration object for the overlay
+   * @param {string} config.name - Overlay name for logging (e.g., "spotify", "youtube")
+   * @param {string} config.settingsKey - Key in settings.overlays to check if overlay is enabled
+   * @param {string} config.badgeClassName - CSS class name for badges created by this overlay
+   * @param {Function} config.isMatch - Function that returns true if current page matches this overlay
+   * @param {Function} config.getStyles - Function that returns CSS string to inject
+   * @param {Function} config.runScan - Function to scan page and add badges (receives cache, settings, debug)
+   * @param {Object} [config.observerOptions] - Options for mutation observer and scanner
+   * @param {boolean} [config.observerOptions.useBadgeAware=true] - Use badge-aware observer to ignore badge mutations
+   * @param {number} [config.observerOptions.scanInterval] - Interval for periodic scans in ms (optional)
+   * @param {number} [config.observerOptions.cooldown=0] - Minimum time between scans in ms
+   * @returns {Object} Overlay instance with debug helpers and control methods
+   * @returns {Object} return.debug - Debug API with log/warn/error and helper functions
+   * @returns {Function} return.getCache - Get current cache
+   * @returns {Function} return.getSettings - Get current settings
+   * @returns {Function} return.rescan - Trigger a manual rescan
    */
   function createOverlay(config) {
     const {

@@ -102,6 +102,7 @@
         "shared/observer-utils.js",
         "shared/badge-utils.js",
         "shared/match-utils.js",
+        "shared/overlay-utils.js",
         "content/jellyfin-overlay.js"
       ],
       "run_at": "document_idle"
