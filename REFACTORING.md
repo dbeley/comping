@@ -9,7 +9,9 @@ The extension had significant duplication across 7 overlay files, with each impl
 ## New Framework: `overlay-utils.js`
 
 ### Purpose
+
 Provides a `createOverlay()` function that eliminates ~100 lines of boilerplate per overlay by handling:
+
 - Settings and cache loading
 - Host matching and initialization
 - Mutation observer setup
@@ -21,8 +23,8 @@ Provides a `createOverlay()` function that eliminates ~100 lines of boilerplate 
 
 ```javascript
 const overlay = createOverlay({
-  name: "spotify",              // For logging
-  settingsKey: "spotify",       // Key in settings.overlays
+  name: "spotify", // For logging
+  settingsKey: "spotify", // Key in settings.overlays
   badgeClassName: "rym-ext-badge-spotify",
   isMatch: () => /spotify\.com/.test(location.hostname),
   getStyles: () => `/* CSS */`,
@@ -30,9 +32,9 @@ const overlay = createOverlay({
     // Scan page and add badges
   },
   observerOptions: {
-    useBadgeAware: true,       // Ignore badge-only mutations
-    scanInterval: 5000,        // Optional periodic scan
-    cooldown: 400,             // Min time between scans
+    useBadgeAware: true, // Ignore badge-only mutations
+    scanInterval: 5000, // Optional periodic scan
+    cooldown: 400, // Min time between scans
   },
 });
 
@@ -42,19 +44,23 @@ window.__MY_DEBUG__ = overlay.debug;
 ## Refactored Overlays
 
 ### humble-overlay.js
+
 - **Before:** 208 lines
 - **After:** 172 lines
 - **Reduction:** 17% (36 lines)
 - **Status:** ✅ Complete
 
 ### jellyfin-overlay.js
+
 - **Before:** 177 lines
 - **After:** 129 lines
 - **Reduction:** 27% (48 lines)
 - **Status:** ✅ Complete
 
 ### Remaining Overlays
+
 These can be refactored using the same pattern:
+
 - spotify-overlay.js (409 lines → ~300 lines estimated)
 - youtube-overlay.js (321 lines → ~250 lines estimated)
 - lastfm-overlay.js (300 lines → ~230 lines estimated)
@@ -66,6 +72,7 @@ These can be refactored using the same pattern:
 ## Documentation Improvements
 
 Added comprehensive JSDoc comments to:
+
 - `overlay-utils.js` - Complete API documentation
 - `badge-utils.js` - All functions documented with examples
 - `normalize.js` - All functions documented with examples
@@ -93,6 +100,7 @@ See `humble-overlay.js` and `jellyfin-overlay.js` for examples.
 ## Testing
 
 After refactoring:
+
 1. Load extension in browser
 2. Visit target site
 3. Verify badges appear correctly
