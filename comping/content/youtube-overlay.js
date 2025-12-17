@@ -1,119 +1,55 @@
 (function () {
   const api = window.__RYM_EXT__ || {};
-  const keyFor = api.keyFor || ((artist, title) => `${artist}|${title}`);
-  const alternativeKeys = api.alternativeKeys || ((artist, title) => [keyFor(artist, title)]);
+  const alternativeKeys = api.alternativeKeys || ((artist, title) => [api.keyFor(artist, title)]);
   const stripVersionSuffix = api.stripVersionSuffix || ((text) => text);
-  const fetchSettings = api.fetchSettings;
-  const fetchCache = api.fetchCache;
-  const createDebugger = api.createDebugger;
-  const createScanScheduler = api.createScanScheduler;
   const buildBadge = api.buildBadge;
   const updateBadge = api.updateBadge;
   const isMatchable = api.isMatchable;
   const ColorSchemes = api.ColorSchemes;
-
-  let cache = null;
-  let settings = null;
-  let styleInjected = false;
-  let observer = null;
-  let scanner = null;
-
-  const debug = createDebugger("rym-youtube", {
-    getCache: () => cache,
-    rescan: () => runScan(),
-    testLookup: (artist, title) => {
-      const keys = alternativeKeys(artist, title);
-      for (const key of keys) {
-        if (cache?.index?.[key]) {
-          debug.log("Match for", key, cache.index[key]);
-          return cache.index[key];
-        }
-      }
-      debug.warn("No match for keys", keys);
-      return null;
-    },
-  });
-  const log = debug.log;
-  const warn = debug.warn;
-
-  window.__RYM_YOUTUBE_DEBUG__ = debug;
-
-  init().catch((err) => warn("init failed", err));
-
-  async function init() {
-    if (!isYouTube()) return;
-
-    settings = await fetchSettings({ overlays: { youtube: true } });
-    if (!settings?.overlays?.youtube) {
-      log("Overlay disabled in settings");
-      return;
-    }
-
-    cache = await fetchCache();
-    if (!cache?.index) {
-      warn("No cache available");
-      return;
-    }
-
-    injectStyles();
-    observe();
-    log("Ready - cache entries:", Object.keys(cache.index).length);
-  }
+  const createOverlay = api.createOverlay;
 
   function isYouTube() {
     const host = window.location.hostname;
     return host.includes("youtube.com") || host === "youtu.be";
   }
 
-  function observe() {
-    scanner = createScanScheduler(runScan, { cooldown: 400 });
-    scanner.schedule(true);
-
-    setInterval(() => scanner.schedule(), 5000);
-
-    observer = new MutationObserver((mutations) => {
-      let hasRelevantChanges = false;
-
-      for (const mutation of mutations) {
-        // Ignore mutations that only involve our badges
-        const addedNodes = Array.from(mutation.addedNodes);
-        const removedNodes = Array.from(mutation.removedNodes);
-
-        const hasNonBadgeAdditions = addedNodes.some((node) => {
-          if (node.nodeType !== 1) return false;
-          return (
-            !node.classList?.contains("rym-ext-badge-youtube") &&
-            !node.querySelector?.(".rym-ext-badge-youtube")
-          );
-        });
-
-        const hasNonBadgeRemovals = removedNodes.some((node) => {
-          if (node.nodeType !== 1) return false;
-          return (
-            !node.classList?.contains("rym-ext-badge-youtube") &&
-            !node.querySelector?.(".rym-ext-badge-youtube")
-          );
-        });
-
-        if (hasNonBadgeAdditions || hasNonBadgeRemovals) {
-          hasRelevantChanges = true;
-          break;
-        }
+  function getStyles() {
+    return `
+      .rym-ext-badge {
+        margin-left: 8px;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        vertical-align: middle;
+        cursor: default;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        line-height: 1.2;
       }
-
-      if (hasRelevantChanges) {
-        scanner.schedule();
+      .rym-ext-badge-youtube {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+      h1 .rym-ext-badge-youtube {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      a#video-title .rym-ext-badge-youtube,
+      yt-formatted-string#video-title .rym-ext-badge-youtube {
+        font-size: 10px;
+        padding: 2px 6px;
+      }
+    `;
   }
 
-  function runScan() {
-    annotateWatchTitle();
-    annotateRenderers();
+  function runScan(cache, settings, debug) {
+    annotateWatchTitle(cache, debug);
+    annotateRenderers(cache, debug);
   }
 
-  function annotateWatchTitle() {
+  function annotateWatchTitle(cache, debug) {
     const wrapper = document.querySelector("ytd-watch-metadata");
     const titleEl = wrapper?.querySelector("#title yt-formatted-string");
     if (!titleEl) return;
@@ -127,10 +63,10 @@
     const meta = parseTitle(title, channel);
     if (!meta) return;
 
-    attachBadge(titleEl, meta.artist, meta.title, meta.mediaType);
+    attachBadge(titleEl, meta.artist, meta.title, meta.mediaType, null, cache, debug);
   }
 
-  function annotateRenderers() {
+  function annotateRenderers(cache, debug) {
     const selectors = [
       "ytd-video-renderer",
       "ytd-compact-video-renderer",
@@ -143,7 +79,7 @@
         renderer.querySelector("yt-formatted-string#video-title") ||
         renderer.querySelector("#video-title");
       if (!titleEl) {
-        if (idx < 2) log("Renderer missing title", renderer);
+        if (idx < 2) debug.log("Renderer missing title", renderer);
         return;
       }
 
@@ -170,7 +106,7 @@
       }
       titleEl.dataset.rymExtKey = primaryKey || "";
 
-      attachBadge(titleEl, meta.artist, meta.title, meta.mediaType, keys);
+      attachBadge(titleEl, meta.artist, meta.title, meta.mediaType, keys, cache, debug);
     });
   }
 
@@ -227,7 +163,15 @@
     return name.replace(/\s+-\s+topic$/i, "").trim();
   }
 
-  function attachBadge(target, artist, title, mediaType = "release", cachedKeys = null) {
+  function attachBadge(
+    target,
+    artist,
+    title,
+    mediaType = "release",
+    cachedKeys = null,
+    cache,
+    debug
+  ) {
     if (!target || !artist || !title) return;
     const keys = cachedKeys || alternativeKeys(artist, title);
     const existing = target.querySelector(".rym-ext-badge-youtube");
@@ -273,42 +217,7 @@
     });
 
     target.appendChild(badge);
-    log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
-  }
-
-  function injectStyles() {
-    if (styleInjected) return;
-    styleInjected = true;
-    const style = document.createElement("style");
-    style.textContent = `
-      .rym-ext-badge {
-        margin-left: 8px;
-        padding: 2px 6px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        vertical-align: middle;
-        cursor: default;
-        display: inline-flex;
-        align-items: center;
-        white-space: nowrap;
-        line-height: 1.2;
-      }
-      .rym-ext-badge-youtube {
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      }
-      h1 .rym-ext-badge-youtube {
-        font-size: 12px;
-        padding: 4px 8px;
-      }
-      a#video-title .rym-ext-badge-youtube,
-      yt-formatted-string#video-title .rym-ext-badge-youtube {
-        font-size: 10px;
-        padding: 2px 6px;
-      }
-    `;
-    document.documentElement.appendChild(style);
+    debug.log(`✓ badge: "${artist}" - "${title}" → ${match.ratingValue}`);
   }
 
   function textContent(node) {
@@ -318,4 +227,22 @@
   function collapseSpaces(text) {
     return (text || "").replace(/\s+/g, " ").trim();
   }
+
+  // Initialize overlay using common pattern
+  // Note: YouTube uses custom observer logic for better performance
+  const overlay = createOverlay({
+    name: "youtube",
+    settingsKey: "youtube",
+    badgeClassName: "rym-ext-badge-youtube",
+    isMatch: isYouTube,
+    getStyles: getStyles,
+    runScan: runScan,
+    observerOptions: {
+      useBadgeAware: false, // YouTube needs custom observer logic
+      scanInterval: 5000,
+      cooldown: 400,
+    },
+  });
+
+  window.__RYM_YOUTUBE_DEBUG__ = overlay.debug;
 })();
