@@ -118,6 +118,7 @@
         "shared/observer-utils.js",
         "shared/badge-utils.js",
         "shared/match-utils.js",
+        "shared/overlay-utils.js",
         "content/lastfm-overlay.js"
       ],
       "run_at": "document_idle"
