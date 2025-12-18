@@ -1,85 +1,67 @@
 (function () {
   const api = window.__RYM_EXT__ || {};
   const keyFor = api.keyFor || (() => "");
-  const fetchSettings = api.fetchSettings;
-  const fetchCache = api.fetchCache;
-  const getCacheStats = api.getCacheStats;
-  const createDebugger = api.createDebugger;
-  const createBadgeAwareMutationObserver = api.createBadgeAwareMutationObserver;
-  const createScanScheduler = api.createScanScheduler;
   const buildBadge = api.buildBadge;
   const isMatchable = api.isMatchable;
   const text = api.text;
   const ColorSchemes = api.ColorSchemes;
-
-  let cache = null;
-  let settings = null;
-  let styleInjected = false;
-  let observer = null;
-  let scanner = null;
-
-  const debug = createDebugger("rym-spotify", {
-    rescan: () => runScan(),
-    getCache: () => cache,
-    getCacheStats: () => getCacheStats(cache),
-  });
-  const log = debug.log;
-  const warn = debug.warn;
-
-  window.__RYM_SPOTIFY_DEBUG__ = debug;
-
-  init().catch((err) => warn("init failed", err));
-
-  async function init() {
-    log("Initializing...");
-    if (!isSpotify()) {
-      log("Not a Spotify page");
-      return;
-    }
-    log("Spotify detected");
-
-    settings = await fetchSettings({ overlays: { spotify: true } });
-    if (!settings.overlays?.spotify) {
-      log("Spotify overlay disabled in settings");
-      return;
-    }
-
-    cache = await fetchCache();
-    log("Cache loaded, entries:", cache ? Object.keys(cache.index || {}).length : 0);
-    if (!cache?.index) {
-      warn("No cache available");
-      return;
-    }
-
-    injectStyles();
-    observe();
-    log("Initialization complete");
-  }
+  const createOverlay = api.createOverlay;
 
   function isSpotify() {
     return /open\.spotify\.com/.test(window.location.hostname);
   }
 
-  function observe() {
-    scanner = createScanScheduler(runScan);
-    scanner.schedule(true);
-
-    observer = createBadgeAwareMutationObserver("rym-ext-badge-spotify", () => {
-      scanner.schedule(true);
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+  function getStyles() {
+    return `
+      .rym-ext-badge {
+        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .rym-ext-badge-spotify {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        z-index: 12;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      .rym-ext-badge-spotify:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+      }
+      .rym-ext-badge-spotify.rym-ext-badge-compact {
+        position: static;
+        display: inline-block;
+        margin-right: 6px;
+        margin-left: 0;
+        font-size: 10px;
+        padding: 2px 6px;
+        vertical-align: middle;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+    `;
   }
 
-  async function runScan() {
+  async function runScan(cache, settings, debug) {
     const pageType = detectPageType();
-    log("Page type detected:", pageType);
+    debug.log("Page type detected:", pageType);
 
     if (pageType === "artist") {
-      await annotateArtistPage();
+      await annotateArtistPage(cache, debug);
     } else if (pageType === "album") {
-      await annotateAlbumPage();
+      await annotateAlbumPage(cache, debug);
     } else if (pageType === "playlist") {
-      await annotatePlaylistPage();
+      await annotatePlaylistPage(cache, debug);
     }
   }
 
@@ -96,35 +78,35 @@
     return "unknown";
   }
 
-  async function annotateArtistPage() {
+  async function annotateArtistPage(cache, debug) {
     const artistName = extractArtistName();
     if (!artistName) {
-      log("Could not extract artist name");
+      debug.log("Could not extract artist name");
       return;
     }
-    log("Artist name:", artistName);
+    debug.log("Artist name:", artistName);
 
-    await annotateAlbumCards(artistName);
-    await annotateTrackRows(artistName);
+    await annotateAlbumCards(artistName, cache, debug);
+    await annotateTrackRows(artistName, cache, debug);
   }
 
-  async function annotateAlbumPage() {
+  async function annotateAlbumPage(cache, debug) {
     const albumInfo = extractAlbumInfo();
     if (!albumInfo.title || !albumInfo.artist) {
-      log("Could not extract album info");
+      debug.log("Could not extract album info");
       return;
     }
-    log("Album info:", albumInfo);
+    debug.log("Album info:", albumInfo);
 
-    await annotateAlbumHeader(albumInfo);
-    await annotateTrackRows(albumInfo.artist);
+    await annotateAlbumHeader(albumInfo, cache, debug);
+    await annotateTrackRows(albumInfo.artist, cache, debug);
   }
 
-  async function annotatePlaylistPage() {
-    await annotateTrackRows();
+  async function annotatePlaylistPage(cache, debug) {
+    await annotateTrackRows(null, cache, debug);
   }
 
-  async function annotateAlbumCards(artistFilter = null) {
+  async function annotateAlbumCards(artistFilter = null, cache, debug) {
     const cards = document.querySelectorAll('[data-testid="card-image"]');
     let idx = 0;
 
@@ -144,15 +126,15 @@
 
       const albumTitle = extractTextFromElement(cardContainer);
       if (!albumTitle) {
-        if (logIndex < 3) log("No title found for album card", cardContainer);
+        if (logIndex < 3) debug.log("No title found for album card", cardContainer);
         continue;
       }
 
       const artist = artistFilter || extractArtistFromCard(cardContainer);
-      const match = await findMatch({ artist, title: albumTitle, type: "release" });
+      const match = await findMatch({ artist, title: albumTitle, type: "release" }, cache);
 
       if (!match) {
-        if (logIndex < 3) log(`No match for album "${albumTitle}" by ${artist}`);
+        if (logIndex < 3) debug.log(`No match for album "${albumTitle}" by ${artist}`);
         continue;
       }
 
@@ -168,13 +150,13 @@
         imageContainer.style.position = "relative";
         imageContainer.appendChild(badge);
         if (logIndex < 3) {
-          log(`✓ BADGE ATTACHED: "${albumTitle}" → ${match.ratingValue || "?"}`);
+          debug.log(`✓ BADGE ATTACHED: "${albumTitle}" → ${match.ratingValue || "?"}`);
         }
       }
     }
   }
 
-  async function annotateTrackRows(artistFilter = null) {
+  async function annotateTrackRows(artistFilter = null, cache, debug) {
     const rows = document.querySelectorAll(
       '[data-testid="tracklist-row"], [data-testid="playlist-tracklist-row"]'
     );
@@ -188,20 +170,20 @@
 
       const trackInfo = extractTrackInfo(row);
       if (!trackInfo.title) {
-        if (logIndex < 3) log("No track title found in row", row);
+        if (logIndex < 3) debug.log("No track title found in row", row);
         continue;
       }
 
       const artist = artistFilter || trackInfo.artist;
       if (!artist) {
-        if (logIndex < 3) log("No artist found for track", trackInfo.title);
+        if (logIndex < 3) debug.log("No artist found for track", trackInfo.title);
         continue;
       }
 
-      const match = await findMatch({ artist, title: trackInfo.title, type: "song" });
+      const match = await findMatch({ artist, title: trackInfo.title, type: "song" }, cache);
 
       if (!match) {
-        if (logIndex < 3) log(`No match for track "${trackInfo.title}" by ${artist}`);
+        if (logIndex < 3) debug.log(`No match for track "${trackInfo.title}" by ${artist}`);
         continue;
       }
 
@@ -217,32 +199,35 @@
       if (titleElement) {
         titleElement.insertBefore(badge, titleElement.firstChild);
         if (logIndex < 3) {
-          log(`✓ BADGE ATTACHED: "${trackInfo.title}" → ${match.ratingValue || "?"}`);
+          debug.log(`✓ BADGE ATTACHED: "${trackInfo.title}" → ${match.ratingValue || "?"}`);
         }
       }
     }
   }
 
-  async function annotateAlbumHeader(albumInfo) {
+  async function annotateAlbumHeader(albumInfo, cache, debug) {
     const header = document.querySelector(
       '[data-testid="entity-title"], [data-testid="entityTitle"]'
     );
     if (!header) {
-      log("Album header not found");
+      debug.log("Album header not found");
       return;
     }
 
     header.querySelectorAll(".rym-ext-badge-spotify").forEach((b) => b.remove());
 
-    const match = await findMatch({
-      artist: albumInfo.artist,
-      title: albumInfo.title,
-      type: "release",
-      year: albumInfo.year,
-    });
+    const match = await findMatch(
+      {
+        artist: albumInfo.artist,
+        title: albumInfo.title,
+        type: "release",
+        year: albumInfo.year,
+      },
+      cache
+    );
 
     if (!match) {
-      log(`No match for album "${albumInfo.title}" by ${albumInfo.artist}`);
+      debug.log(`No match for album "${albumInfo.title}" by ${albumInfo.artist}`);
       return;
     }
 
@@ -259,7 +244,9 @@
     badge.style.verticalAlign = "middle";
 
     header.appendChild(badge);
-    log(`✓ BADGE ATTACHED to album header: "${albumInfo.title}" → ${match.ratingValue || "?"}`);
+    debug.log(
+      `✓ BADGE ATTACHED to album header: "${albumInfo.title}" → ${match.ratingValue || "?"}`
+    );
   }
 
   function extractArtistName() {
@@ -340,7 +327,7 @@
     return null;
   }
 
-  async function findMatch(info) {
+  async function findMatch(info, cache) {
     if (!cache?.index) return null;
 
     const artist = info.artist || "";
@@ -362,48 +349,18 @@
     return null;
   }
 
-  function injectStyles() {
-    if (styleInjected) return;
-    styleInjected = true;
-    const style = document.createElement("style");
-    style.textContent = `
-      .rym-ext-badge {
-        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.2px;
-      }
-      .rym-ext-badge-spotify {
-        position: absolute;
-        top: 6px;
-        left: 6px;
-        padding: 4px 8px;
-        border-radius: 12px;
-        color: #fff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-        z-index: 12;
-        text-decoration: none;
-        cursor: pointer;
-        transition: transform 120ms ease, box-shadow 120ms ease;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-      }
-      .rym-ext-badge-spotify:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
-      }
-      .rym-ext-badge-spotify.rym-ext-badge-compact {
-        position: static;
-        display: inline-block;
-        margin-right: 6px;
-        margin-left: 0;
-        font-size: 10px;
-        padding: 2px 6px;
-        vertical-align: middle;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-    `;
-    document.head.appendChild(style);
-  }
+  // Initialize overlay using common pattern
+  const overlay = createOverlay({
+    name: "spotify",
+    settingsKey: "spotify",
+    badgeClassName: "rym-ext-badge-spotify",
+    isMatch: isSpotify,
+    getStyles: getStyles,
+    runScan: runScan,
+    observerOptions: {
+      useBadgeAware: true,
+    },
+  });
+
+  window.__RYM_SPOTIFY_DEBUG__ = overlay.debug;
 })();
