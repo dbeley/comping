@@ -1,6 +1,6 @@
 (function () {
   const api = window.__RYM_EXT__ || {};
-  const alternativeKeys = api.alternativeKeys || ((artist, title) => [api.keyFor(artist, title)]);
+  const alternativeKeys = api.alternativeKeys || ((artist, title) => [(api.keyFor || ((a, t) => `${a}|${t}`))(artist, title)]);
   const stripVersionSuffix = api.stripVersionSuffix || ((text) => text);
   const buildBadge = api.buildBadge;
   const updateBadge = api.updateBadge;
@@ -229,7 +229,7 @@
   }
 
   // Initialize overlay using common pattern
-  // Note: YouTube uses custom observer logic for better performance
+  // Note: useBadgeAware: false because YouTube needs specific timing control
   const overlay = createOverlay({
     name: "youtube",
     settingsKey: "youtube",
