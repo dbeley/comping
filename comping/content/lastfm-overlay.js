@@ -10,12 +10,14 @@
   const buildBadge = api.buildBadge;
   const isMatchable = api.isMatchable;
   const ColorSchemes = api.ColorSchemes;
+  const PAGE_SETTLE_DELAY_MS = 100;
 
   let cache = null;
   let settings = null;
   let styleInjected = false;
   let observer = null;
   let scanner = null;
+  let settleTimer = null;
 
   const debug = createDebugger("rym-lastfm", {
     getCache: () => cache,
@@ -67,12 +69,20 @@
 
   function observe() {
     scanner = createScanScheduler(runScan);
-    scanner.schedule(true);
 
-    setInterval(() => scanner.schedule(), 3000);
+    const scheduleSettledScan = (full = false) => {
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        scanner.schedule(full);
+      }, PAGE_SETTLE_DELAY_MS);
+    };
+
+    scheduleSettledScan(true);
+
+    setInterval(() => scheduleSettledScan(), 3000);
 
     observer = createBadgeAwareMutationObserver("rym-ext-badge-lastfm", () => {
-      scanner.schedule(true);
+      scheduleSettledScan(true);
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
