@@ -57,17 +57,41 @@ window.__MY_DEBUG__ = overlay.debug;
 - **Reduction:** 27% (48 lines)
 - **Status:** ✅ Complete
 
+### lastfm-overlay.js
+
+- **Before:** 300 lines
+- **After:** 245 lines
+- **Reduction:** 18% (55 lines)
+- **Status:** ✅ Complete
+
+### youtube-overlay.js
+
+- **Before:** 321 lines
+- **After:** 240 lines
+- **Reduction:** 25% (81 lines)
+- **Status:** ✅ Complete
+
+### spotify-overlay.js
+
+- **Before:** 409 lines
+- **After:** 361 lines
+- **Reduction:** 12% (48 lines)
+- **Status:** ✅ Complete
+
+### Total Progress
+
+- **Overlays refactored:** 5/7 (71%)
+- **Total lines saved:** 267 lines
+- **Average reduction:** 20%
+
 ### Remaining Overlays
 
 These can be refactored using the same pattern:
 
-- spotify-overlay.js (409 lines → ~300 lines estimated)
-- youtube-overlay.js (321 lines → ~250 lines estimated)
-- lastfm-overlay.js (300 lines → ~230 lines estimated)
-- navidrome-overlay.js (586 lines → ~450 lines estimated)
-- steam-overlay.js (411 lines → ~300 lines estimated)
+- navidrome-overlay.js (586 lines → ~450 lines estimated, **~23% reduction**)
+- steam-overlay.js (411 lines → ~320 lines estimated, **~22% reduction**)
 
-**Estimated total reduction:** ~400 additional lines
+**Estimated total additional reduction:** ~180 lines
 
 ## Documentation Improvements
 
