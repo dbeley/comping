@@ -7,7 +7,7 @@
   let chartRefreshTimer = null;
   let chartContainer = null;
   let chartContainerWatcher = null;
-  let chartPollInterval = null;
+  const chartPollInterval = null;
   let chartExtractionInFlight = false;
 
   main().catch((err) => console.warn("[rym-overlay] extract failed", err));
@@ -182,10 +182,6 @@
 
     hookChartNavigation(scheduleRefresh);
     setTimeout(() => hookChartNavigation(scheduleRefresh), 500);
-
-    if (!chartPollInterval) {
-      chartPollInterval = setInterval(() => scheduleRefresh(), 2000);
-    }
   }
 
   function ensureChartContainerWatcher(settings) {

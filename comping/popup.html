@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -38,7 +38,7 @@
         color: #333;
       }
       .section h2::before {
-        content: '▼';
+        content: "▼";
         font-size: 10px;
         transition: transform 0.2s;
       }
@@ -47,7 +47,9 @@
       }
       .section-content {
         overflow: hidden;
-        transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        transition:
+          max-height 0.3s ease-out,
+          opacity 0.2s ease-out;
         max-height: 500px;
         opacity: 1;
       }
@@ -144,7 +146,7 @@
       <button id="clear-cache">Clear cache</button>
     </div>
     <div id="message"></div>
-    <div id="confirm-modal" class="modal" style="display: none;">
+    <div id="confirm-modal" class="modal" style="display: none">
       <div class="modal-content">
         <h3>Clear Cache?</h3>
         <p>This will permanently delete all cached ratings. Are you sure?</p>

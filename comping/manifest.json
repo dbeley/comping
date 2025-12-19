@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Comping",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "An add-on to accompany your browsing by adding notes on works cached from Sonemic websites (music, movies, video games).",
   "browser_specific_settings": {
     "gecko": {
