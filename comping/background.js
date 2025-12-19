@@ -134,8 +134,9 @@
       return { ok: false, skipped: true };
     }
 
+    const current = await loadCache();
     const normalizedRecords = normalizeRecords(records || {}, meta);
-    const merged = mergeRecords(cache?.entries || [], normalizedRecords);
+    const merged = mergeRecords(current?.entries || [], normalizedRecords);
     const index = indexRecords(merged);
     const next = {
       entries: merged,
@@ -144,8 +145,14 @@
       source: meta.source,
     };
     cache = next;
-    await new Promise((resolve) => {
-      browser.storage.local.set({ [CACHE_KEY]: next }, resolve);
+    await new Promise((resolve, reject) => {
+      browser.storage.local.set({ [CACHE_KEY]: next }, () => {
+        if (browser.runtime.lastError) {
+          reject(browser.runtime.lastError);
+        } else {
+          resolve();
+        }
+      });
     });
     console.debug("[rym-overlay][bg] cache updated successfully", {
       mediaType: meta.mediaType,
