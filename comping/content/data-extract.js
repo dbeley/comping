@@ -134,7 +134,8 @@
   }
 
   function setupChartObservers(settings) {
-    if (document.documentElement.id !== "page_charts") return;
+    const pageId = document.documentElement.id;
+    if (pageId !== "page_charts" && pageId !== "page_chart") return;
     ensureChartContainerWatcher(settings);
     const container = findChartContainer();
     if (!container) return;
@@ -198,7 +199,9 @@
   function findChartContainer() {
     return (
       document.querySelector(".page_charts_section_charts_items") ||
-      document.querySelector("#page_charts_section_charts")
+      document.querySelector("#page_charts_section_charts") ||
+      document.querySelector("#page_chart_section_charts") ||
+      document.querySelector(".chart_card")?.parentElement
     );
   }
 
