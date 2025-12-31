@@ -260,7 +260,10 @@
       const record = baseRecord("release", link.href || "");
       record.name = text(link);
       record.artist = texts(artistLinks).join(" / ");
-      record.releaseDate = text(item.querySelector(".page_feature_title_year"));
+      record.releaseDate = text(item.querySelector(".page_feature_title_year")).replace(
+        /[()]/g,
+        ""
+      );
       record.ratingValue = ratingMeta?.getAttribute("content") || "";
       record.isPartial = true;
       items.push(record);
