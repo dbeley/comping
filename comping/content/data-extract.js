@@ -239,7 +239,7 @@
       record.name = text(link);
       record.artist = texts(artistLinks).join(" / ");
       record.releaseDate = text(item.querySelector(".newreleases_item_releasedate"));
-      record.primaryGenres = genres.join(", ");
+      record.primaryGenres = genres.map((g) => g.replace(/[,\s]+$/, "")).join(", ");
       record.ratingValue = ratingValue;
       record.ratingCount = ratingCount;
       record.reviewCount = reviewCount;
