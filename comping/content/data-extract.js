@@ -229,7 +229,7 @@
     const items = [];
     document.querySelectorAll(".newreleases_itembox").forEach((item) => {
       const link = item.querySelector(".newreleases_item_title");
-      const artistLink = item.querySelector(".newreleases_item_artist .artist");
+      const artistLinks = item.querySelectorAll(".newreleases_item_artist .artist");
       const genres = texts(item.querySelectorAll(".newreleases_item_genres"));
       const ratingValue = text(item.querySelector(".newreleases_avg_rating_stat"));
       const ratingCount = toNumber(text(item.querySelector(".newreleases_ratings_stat")));
@@ -237,7 +237,7 @@
       const imageEl = item.querySelector(".newreleases_item_art, .newreleases_item_artbox img");
       const record = baseRecord("release", link?.href || "");
       record.name = text(link);
-      record.artist = text(artistLink);
+      record.artist = texts(artistLinks).join(" / ");
       record.releaseDate = text(item.querySelector(".newreleases_item_releasedate"));
       record.primaryGenres = genres.join(", ");
       record.ratingValue = ratingValue;
@@ -254,12 +254,12 @@
     const items = [];
     document.querySelectorAll(".page_feature_main_info").forEach((item) => {
       const link = item.querySelector(".page_feature_title a.album");
-      const artistLink = item.querySelector(".page_feature_artist .artist");
+      const artistLinks = item.querySelectorAll(".page_feature_artist .artist");
       if (!link) return;
       const ratingMeta = item.querySelector("[itemprop=reviewRating] [itemprop=ratingValue]");
       const record = baseRecord("release", link.href || "");
       record.name = text(link);
-      record.artist = text(artistLink);
+      record.artist = texts(artistLinks).join(" / ");
       record.releaseDate = text(item.querySelector(".page_feature_title_year"));
       record.ratingValue = ratingMeta?.getAttribute("content") || "";
       record.isPartial = true;
@@ -272,9 +272,9 @@
     const table = extractInfoTable(".album_info");
     const record = baseRecord("release", location.href);
     record.name = text(document.querySelector(".album_title"));
-    record.artist = text(
-      document.querySelector(".album_info .artist, .album_artist_small .artist")
-    );
+    record.artist = texts(
+      document.querySelectorAll(".album_info .artist, .album_artist_small .artist")
+    ).join(" / ");
     record.type = table.Type || "";
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
@@ -364,11 +364,11 @@
       if (!link) return;
       const record = baseRecord(mediaType, link.href || "");
       record.name = text(link);
-      record.artist = text(
-        item.querySelector(
+      record.artist = texts(
+        item.querySelectorAll(
           ".page_charts_section_charts_item_credited_links_primary a.artist, .page_charts_section_charts_item_credited_links_primary a.film_artist"
         )
-      );
+      ).join(" / ");
 
       // Extract release date and type
       const dateCompact = item.querySelector(".page_charts_section_charts_item_title_date_compact");
@@ -415,9 +415,9 @@
       if (!link) return;
       const record = baseRecord("song", link.href || "");
       record.name = text(link);
-      record.artist = text(
-        item.querySelector(".page_charts_section_charts_item_credited_text .artist")
-      );
+      record.artist = texts(
+        item.querySelectorAll(".page_charts_section_charts_item_credited_text .artist")
+      ).join(" / ");
       record.releaseDate = text(
         item.querySelector(
           ".page_charts_section_charts_item_title_date_compact span, .page_charts_section_charts_item_date span"
@@ -446,7 +446,9 @@
   function extractSongPage() {
     const record = baseRecord("song", location.href);
     record.name = text(document.querySelector(".page_song_header_main_info h1"));
-    record.artist = text(document.querySelector(".page_song_header_info_artist .artist"));
+    record.artist = texts(document.querySelectorAll(".page_song_header_info_artist .artist")).join(
+      " / "
+    );
     record.releaseDate = extractFromPipes(
       document.querySelectorAll(".page_song_header_info_rest .pipe_separated")
     );
@@ -472,7 +474,7 @@
     const table = extractInfoTable(".film_info");
     const record = baseRecord("film", location.href);
     record.name = text(document.querySelector(".film_title h1, .album_title"));
-    record.directors = text(document.querySelector(".film_info a.film_artist"));
+    record.directors = texts(document.querySelectorAll(".film_info a.film_artist")).join(" / ");
     record.releaseDate = table.Released || "";
     record.ratingValue = text(document.querySelector(".avg_rating"));
     record.maxRating = extractMaxRating(

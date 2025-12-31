@@ -17,7 +17,7 @@ repos:
         entry: npm run lint:fix --
         language: system
         files: \.(js)$
-        exclude: ^eslint.config\.js$
+        exclude: ^(eslint\.config\.js|examples/)
         types: [file]
         pass_filenames: true
 

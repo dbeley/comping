@@ -22,6 +22,6 @@ export default [
     },
   },
   {
-    ignores: ["build/", "node_modules/", ".git/", "eslint.config.js"],
+    ignores: ["build/", "node_modules/", ".git/", "eslint.config.js", "examples/"],
   },
 ];
